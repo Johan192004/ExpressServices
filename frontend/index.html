@@ -1,62 +1,47 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Test CRUD</title>
-</head>
+    <meta charset="UTF-8">
+    <title>Servicios Express</title>
+    </head>
 <body>
-<h2>Registrar Cliente</h2>
-<form id="clientForm">
-  <input type="text" name="full_name" placeholder="Nombre completo" required><br>
-  <input type="email" name="email" placeholder="Correo" required><br>
-  <input type="password" name="password_hash" placeholder="Contraseña" required><br>
-  <input type="text" name="phone_number" placeholder="Teléfono"><br>
-  <input type="text" name="personal_picture" placeholder="URL de foto"><br>
-  <button type="submit">Registrar Cliente</button>
+
+    <h2>Iniciar Sesión</h2>
+    <form id="loginForm">
+        <input type="email" name="email" placeholder="Correo electrónico" required><br>
+        <input type="password" name="password" placeholder="Contraseña" required><br>
+        <button type="submit">Ingresar</button>
+    </form>
+    <div id="loginResult"></div>
+
+    <hr>
+
+    <h2>Registrarme como Cliente</h2>
+    <form id="clientForm">
+        <input type="text" name="full_name" placeholder="Nombre completo" required><br>
+        <input type="email" name="email" placeholder="Correo electrónico" required><br>
+        <input type="password" name="password" placeholder="Contraseña (mín. 8 caracteres)" required><br>
+        <button type="submit">Registrar Cliente</button>
+    </form>
+
+    <hr>
+
+<h2>Registrarme como Proveedor</h2>
+<form id="providerForm">
+    <input type="text" name="full_name" placeholder="Nombre completo" required><br>
+    <input type="email" name="email" placeholder="Correo electrónico" required><br>
+    <input type="password" name="password" placeholder="Contraseña (mín. 8 caracteres)" required><br>
+    <input type="text" name="phone_number" placeholder="Número de WhatsApp" required><br>
+    <input type="url" name="personal_picture" placeholder="URL de tu foto de perfil" required><br>
+    
+    <select name="city" id="provider-city-select" required>
+        <option value="" disabled selected>Selecciona tu ciudad...</option>
+    </select><br>
+
+    <textarea name="bio" placeholder="Cuéntanos un poco sobre ti y tus servicios..."></textarea><br>
+    <button type="submit">Registrar Proveedor</button>
 </form>
 
-<h2>Registrar Proveedor</h2>
-<form id="supplierForm">
-  <input type="text" name="full_name" placeholder="Nombre completo" required><br>
-  <input type="email" name="email" placeholder="Correo" required><br>
-  <input type="password" name="password_hash" placeholder="Contraseña" required><br>
-  <input type="text" name="phone_number" placeholder="Teléfono"><br>
-  <input type="text" name="personal_picture" placeholder="URL de foto"><br>
-  <button type="submit">Registrar Proveedor</button>
-</form>
-
-<script>
-  const API_URL = "http://localhost:3030";
-
-  // Cliente
-  document.getElementById("clientForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target).entries());
-
-    const res = await fetch(`${API_URL}/api/register/client`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    const result = await res.json();
-    alert(result.message);
-  });
-
-  // Proveedor
-  document.getElementById("supplierForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const data = Object.fromEntries(new FormData(e.target).entries());
-
-    const res = await fetch(`${API_URL}/api/register/supplier`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-
-    const result = await res.json();
-    alert(result.message);
-  });
-</script>
+    <script type="module" src="./js/views/auth.js"></script>
 </body>
 </html>

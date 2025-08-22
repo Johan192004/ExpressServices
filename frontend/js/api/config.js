@@ -1,1 +1,2 @@
-export const URL_DB = "http://localhost:3000"
+export const API_URL = "http://localhost:3030"
+
