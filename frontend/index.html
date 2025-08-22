@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Test CRUD</title>
+</head>
+<body>
+<h2>Registrar Cliente</h2>
+<form id="clientForm">
+  <input type="text" name="full_name" placeholder="Nombre completo" required><br>
+  <input type="email" name="email" placeholder="Correo" required><br>
+  <input type="password" name="password_hash" placeholder="Contraseña" required><br>
+  <input type="text" name="phone_number" placeholder="Teléfono"><br>
+  <input type="text" name="personal_picture" placeholder="URL de foto"><br>
+  <button type="submit">Registrar Cliente</button>
+</form>
+
+<h2>Registrar Proveedor</h2>
+<form id="supplierForm">
+  <input type="text" name="full_name" placeholder="Nombre completo" required><br>
+  <input type="email" name="email" placeholder="Correo" required><br>
+  <input type="password" name="password_hash" placeholder="Contraseña" required><br>
+  <input type="text" name="phone_number" placeholder="Teléfono"><br>
+  <input type="text" name="personal_picture" placeholder="URL de foto"><br>
+  <button type="submit">Registrar Proveedor</button>
+</form>
+
+<script>
+  const API_URL = "http://localhost:3030";
+
+  // Cliente
+  document.getElementById("clientForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+
+    const res = await fetch(`${API_URL}/api/register/client`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    alert(result.message);
+  });
+
+  // Proveedor
+  document.getElementById("supplierForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const data = Object.fromEntries(new FormData(e.target).entries());
+
+    const res = await fetch(`${API_URL}/api/register/supplier`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+    alert(result.message);
+  });
+</script>
+</body>
+</html>
