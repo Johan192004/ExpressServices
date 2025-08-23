@@ -12,6 +12,7 @@ const registerRoutes = require("./routes/registers.js");
 const serviceRoutes = require("./routes/services.js");
 const loginRoutes = require("./routes/login.js");
 const utilsRoutes = require('./routes/utilsRoutes.js');
+const favoritesRoutes = require('./routes/favorites.js')
 
 
 const PORT = process.env.EXPRESS_PORT || 3000;
@@ -30,6 +31,7 @@ app.use("/api/services", serviceRoutes);
 // ------------------- INICIO SERVIDOR -------------------
 app.use("/api/login", loginRoutes);
 app.use('/api/utils', utilsRoutes); 
+app.use("/favorites",favoritesRoutes)
 
 // ------------------- INICIO DEL SERVIDOR -------------------
 app.listen(PORT, () => {
