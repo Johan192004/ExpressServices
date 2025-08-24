@@ -11,6 +11,7 @@ const app = express();
 const registerRoutes = require("./routes/registers.js");
 const loginRoutes = require("./routes/login.js");
 const utilsRoutes = require('./routes/utilsRoutes.js');
+const usersRoutes = require('./routes/usersRoutes.js');
 
 const PORT = process.env.EXPRESS_PORT || 3000;
 
@@ -25,6 +26,7 @@ app.use(express.json());
 app.use("/api/register", registerRoutes);
 app.use("/api/login", loginRoutes);
 app.use('/api/utils', utilsRoutes); 
+app.use('/api/users', usersRoutes);
 
 // ------------------- INICIO DEL SERVIDOR -------------------
 app.listen(PORT, () => {
