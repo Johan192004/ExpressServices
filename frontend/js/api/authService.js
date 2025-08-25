@@ -44,3 +44,9 @@ export const checkEmailExists = async (email) => {
     }
     return res.json();
 };
+
+// --- FUNCIÓN AÑADIDA ---
+export const requestPasswordReset = (email) => {
+    // El endpoint espera un objeto con la propiedad "email"
+    return fetchAPI('/password/forgot', { email });
+};
