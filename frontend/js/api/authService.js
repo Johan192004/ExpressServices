@@ -1,8 +1,7 @@
-// frontend/js/api/authService.js
 
 import { API_URL } from './config.js';
 
-// --- Función genérica para peticiones POST ---
+// Función genérica para peticiones POST 
 async function fetchAPI(endpoint, data) {
     const res = await fetch(`${API_URL}/api${endpoint}`, {
         method: "POST",
@@ -19,13 +18,13 @@ async function fetchAPI(endpoint, data) {
     return result;
 }
 
-// --- Endpoints de Autenticación ---
+// Endpoints de Autenticación 
 export const loginUser = (data) => fetchAPI('/login', data);
 export const registerClient = (data) => fetchAPI('/register/client', data);
 export const registerProvider = (data) => fetchAPI('/register/provider', data);
 
 
-// --- FUNCIÓN AÑADIDA ---
+
 // Esta función es para peticiones GET y no necesita enviar datos
 export const getCities = async () => {
     const res = await fetch(`${API_URL}/api/utils/cities`); // Es una petición GET simple
@@ -35,7 +34,7 @@ export const getCities = async () => {
     return res.json();
 };
 
-// --- FUNCIÓN AÑADIDA MIRAR CONTRASEÑA EN EL BACK---
+
 export const checkEmailExists = async (email) => {
     // Es una petición GET, así que construimos la URL con el parámetro
     const res = await fetch(`${API_URL}/api/users/check-email?email=${encodeURIComponent(email)}`);
@@ -45,7 +44,7 @@ export const checkEmailExists = async (email) => {
     return res.json();
 };
 
-// --- FUNCIÓN AÑADIDA ---
+
 export const requestPasswordReset = (email) => {
     // El endpoint espera un objeto con la propiedad "email"
     return fetchAPI('/password/forgot', { email });
