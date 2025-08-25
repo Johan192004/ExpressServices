@@ -14,6 +14,7 @@ const loginRoutes = require("./routes/login.js");
 const utilsRoutes = require('./routes/utilsRoutes.js');
 const usersRoutes = require('./routes/usersRoutes.js');
 const favoritesRoutes = require('./routes/favorites.js')
+const categoriesRoutes = require('./routes/categories.js')
 
 
 const PORT = process.env.EXPRESS_PORT || 3000;
@@ -33,7 +34,8 @@ app.use("/api/services", serviceRoutes);
 app.use("/api/login", loginRoutes);
 app.use('/api/utils', utilsRoutes); 
 app.use('/api/users', usersRoutes);
-app.use("/favorites",favoritesRoutes)
+app.use("/api/favorites",favoritesRoutes)
+app.use("/api/categories",categoriesRoutes)
 
 // ------------------- INICIO DEL SERVIDOR -------------------
 app.listen(PORT, () => {
