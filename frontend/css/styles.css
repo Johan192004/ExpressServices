@@ -142,3 +142,40 @@ body {
 }
 
 
+/* Mejora para el efecto hover en el botón primario del modal */
+.modal-body .btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+.btn-provider {
+    background-color: #fff; /* Fondo blanco */
+    color: var(--secondary-color); /* Texto naranja */
+    border: 2px solid var(--secondary-color); /* Borde naranja */
+    font-weight: 600;
+    transition: all 0.3s ease; /* Transición suave */
+}
+
+/* Estado al pasar el mouse (hover) */
+.btn-provider:hover {
+    background: linear-gradient(45deg, var(--secondary-color), #FF8C42); /* Fondo degradado naranja */
+    color: #fff; /* Texto blanco */
+    border-color: var(--secondary-color); /* Mantenemos el borde */
+    transform: translateY(-3px); /* Pequeño efecto de elevación */
+    box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4); /* Sombra naranja suave */
+}
+
+.btn-outline-primary {
+    border-width: 2px; /* Hacemos el borde un poco más grueso */
+    font-weight: 600;
+    transition: all 0.3s ease; /* Transición suave */
+}
+
+/* Estado al pasar el mouse (hover) */
+.btn-outline-primary:hover {
+    background: linear-gradient(45deg, var(--primary-color), #4364F7); /* Fondo degradado azul */
+    color: #fff; /* Texto blanco */
+    transform: translateY(-3px); /* Pequeño efecto de elevación */
+    box-shadow: 0 5px 15px rgba(0, 82, 212, 0.4); /* Sombra azul suave */
+}
