@@ -1,4 +1,3 @@
-// backend/routes/usersRoutes.js
 const express = require('express');
 const router = express.Router();
 const pool = require('../models/db.js');
@@ -9,7 +8,7 @@ const emailCheckValidation = [
     query('email', 'Por favor, proporciona un correo válido').isEmail().normalizeEmail()
 ];
 
-// La ruta será: GET /api/users/check-email?email=correo@ejemplo.com
+// Ruta para verificar si el email ya está registrado
 router.get('/check-email', emailCheckValidation, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
