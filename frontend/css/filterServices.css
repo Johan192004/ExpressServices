@@ -1,0 +1,39 @@
+body {
+    background-color: #f8f9fa;
+}
+
+.card {
+    transition: transform 0.2s ease-in-out;
+    border-radius: 12px;
+}
+
+.card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.filtros {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.category-btns .btn {
+    border-radius: 10px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.category-btns .btn.active {
+    background-color: #071739;
+    color: #fff;
+}
+
+.btn-filter {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
