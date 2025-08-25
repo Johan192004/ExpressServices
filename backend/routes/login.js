@@ -76,11 +76,14 @@ router.post("/", loginValidationRules, async (req, res) => {
                     token: token,
                     user: {
                         id: user.id_user,
+                        id_provider: providers.length > 0 ? providers[0].id_provider : null,
+                        id_client: clients.length > 0 ? clients[0].id_client : null,
                         email: user.email,
                         full_name: user.full_name,
                         roles: roles
                     }
                 });
+
             }
         );
 

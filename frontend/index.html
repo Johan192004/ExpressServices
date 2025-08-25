@@ -15,32 +15,35 @@
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
-    <div class="container">
-        <a class="navbar-brand fw-bold text-primary" href="index.html">
-            <i class="bi bi-lightning-charge-fill"></i>
-            Express Services
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-                <li class="nav-item">
-                    <a class="nav-link" href="index.html">Inicio</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">Buscar Servicios</a>
-                </li>
-            </ul>
 
-            <div id="guest-buttons" class="d-flex ms-lg-3">
-                <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">Ingresar</button>
-                <button class="btn btn-primary btn-glow" data-bs-toggle="modal" data-bs-target="#registerModal">Registrarse</button>
-            </div>
-
-            <div id="user-buttons" class="d-none d-flex align-items-center ms-lg-3">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="#">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Express Services
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Inicio</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Buscar Servicios</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#">Soy Proveedor</a>
+                    </li>
+                </ul>
+        <div class="d-flex ms-lg-3">
+            <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">Ingresar</button>
+            <button class="btn btn-primary btn-glow" data-bs-toggle="modal" data-bs-target="#registerModal">Registrarse</button>
+        </div>
+        <div id="user-buttons" class="d-none d-flex align-items-center ms-lg-3">
                 <a href="#" class="btn btn-outline-primary me-3 d-none" id="switch-mode-btn"></a>
+
                 <a href="#" class="nav-link fw-bold me-3 d-flex align-items-center" id="profile-link">
                     <i class="bi bi-person-circle me-1"></i> Mi Perfil
                 </a>
@@ -48,6 +51,11 @@
                     <i class="bi bi-box-arrow-right"></i>
                 </button>
             </div>
+
+
+               
+           </div>
+        </div>
 
         </div>
     </div>
@@ -116,6 +124,7 @@
             <p class="text-white-50">&copy; 2025 Express Services. Todos los derechos reservados.</p>
         </div>
     </footer>
+
 
 
     <div class="modal fade" id="loginModal" tabindex="-1">

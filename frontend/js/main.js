@@ -216,15 +216,27 @@ function setupFormSubmissions() {
 
         try {
             const result = await loginUser(data);
-            localStorage.setItem('token', result.token);
             loginResultDiv.textContent = `¡Bienvenido, ${result.user.full_name}!`;
             loginResultDiv.className = 'mt-3 text-center text-success';
-            
             setTimeout(() => {
                 bootstrap.Modal.getInstance(document.getElementById('loginModal')).hide();
-                window.location.reload(); 
-            }, 1000);
+                // Guarda los datos importantes en sessionStorage
+                sessionStorage.setItem('token', result.token);
+                sessionStorage.setItem('id', result.user.id);
+                sessionStorage.setItem('full_name', result.user.full_name);
+                sessionStorage.setItem('id_provider', result.user.id_provider);
+                sessionStorage.setItem('id_client', result.user.id_client);
+                sessionStorage.setItem('email', result.user.email);
+                sessionStorage.setItem('role', result.user.roles.length > 1 ? 'both' : result.user.roles[0]);
 
+                if (result.user.id_client) {
+                    // Redirige a la vista de clientes
+                    window.location.href = 'views/private/client.html';
+                } else if (result.user.id_provider) {
+                    // Redirige a la vista de proveedores
+                    window.location.href = 'views/private/provider.html';
+                }
+            }, 1000);
         } catch (error) {
             loginResultDiv.textContent = `Error: ${error.message}`;
             loginResultDiv.className = 'mt-3 text-center text-danger';
