@@ -3,7 +3,12 @@ import { getServicesByCategory } from "./api/client.js";
 // Show the 'Soy Proveedor' li only if the role is 'both'
 if (window.sessionStorage.getItem('role') === 'both') {
     const liProvider = document.getElementById('li-soy-proveedor');
-    if (liProvider) liProvider.classList.remove('d-none');
+    if (liProvider) {
+        liProvider.classList.remove('d-none');
+        liProvider.addEventListener('click', () => {
+            window.location.href = 'provider.html';
+        });
+    }
 }
 
 
@@ -14,9 +19,10 @@ function createServicesSection() {
     if(!document.getElementById("h2Services")){
         const servicesOutputContainer = document.getElementById("servicesContainer");
         document.getElementById("servicesSection").classList.remove("d-none");
+        // Usar row y justify-content-center para responsividad
         servicesOutputContainer.innerHTML=`<h2 class="fw-bold text-center mb-4" id="h2Services">Servicios</h2>
-                <div id="servicio-container" class="col-12 col-md-6 mx-auto row gy-4">
-                    <!-- Las tarjetas se mostrarán aquí -->
+            <div id="servicio-container" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 justify-content-center">
+                <!-- Las tarjetas se mostrarán aquí -->
             </div>`;
     }
 }
@@ -25,7 +31,7 @@ function createServicesSection() {
 function showServices(list) {
     const servicesContainer = document.getElementById("servicio-container");
     servicesContainer.innerHTML = "";
-    servicesContainer.className = "d-flex justify-content-center";
+    // No sobreescribir las clases de grid responsivo
 
     list.forEach(service => {
         const card = document.createElement('div');
@@ -52,9 +58,13 @@ function showServices(list) {
 
 // Modal reutilizable para detalles de servicio
 function showServiceDetailModal(service) {
-    // Eliminar modal anterior si existe
+
+    // Eliminar modal anterior de detalles si existe
     let oldModal = document.getElementById('serviceDetailModal');
     if (oldModal) oldModal.remove();
+    // Eliminar modal anterior de contacto si existe
+    let oldContactModal = document.getElementById('contactModal');
+    if (oldContactModal) oldContactModal.remove();
 
     const modalHtml = `
         <div class="modal fade" id="serviceDetailModal" tabindex="-1">

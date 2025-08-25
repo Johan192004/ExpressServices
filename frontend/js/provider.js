@@ -2,10 +2,15 @@ import { getMyServices, getCategories, postService, deleteService, putService } 
 
 if (window.sessionStorage.getItem('role') === 'both') {
     const liClient = document.getElementById('li-i-am-client');
-    if (liClient) liClient.classList.remove('d-none');
+    if (liClient) {
+        liClient.classList.remove('d-none');
+        liClient.addEventListener('click', () => {
+            window.location.href = 'client.html';
+        });
+    }
 }
 
-const myProviderId = window.localStorage.getItem("providerId") || 7;
+const myProviderId = window.sessionStorage.getItem("id_provider") || 7;
 const servicesContainer = document.getElementById("servicio-container");
 
 function showMyServices(list) {
@@ -242,5 +247,10 @@ async function postServiceFunction() {
     });
 }
 
+const btnLogOut = document.getElementById('btn-logout');
+btnLogOut.addEventListener('click', () => {
+    window.sessionStorage.clear();
+    window.location.href = '../../index.html';
+});
 
 main();
