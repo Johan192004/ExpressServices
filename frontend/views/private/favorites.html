@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
-    <link rel="stylesheet" href="../../css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css">
 </head>
 <body>
 
@@ -33,13 +33,14 @@
                         <a class="nav-link" href="#">Buscar Servicios</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="#">Mis Favoritos</a>
+                        <a class="nav-link" href="#">Soy Proveedor</a>
                     </li>
                 </ul>
-                <div class="d-flex ms-lg-3">
-                    <button class="btn btn-danger me-2" id="logoutBtn">Cerrar sesion</button>
-                </div>
-            </div>
+        <div class="d-flex ms-lg-3">
+            <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">Ingresar</button>
+            <button class="btn btn-primary btn-glow" data-bs-toggle="modal" data-bs-target="#registerModal">Registrarse</button>
+        </div>
+        </div>
         </div>
     </nav>
 
@@ -47,68 +48,67 @@
         <div class="container text-center">
             <h1 class="display-4 fw-bold text-white mb-4">Encuentra el servicio que necesitas, al instante.</h1>
             <p class="lead text-white-50 mb-5">Conectamos tus necesidades con los mejores profesionales locales.</p>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="input-group input-group-lg shadow-lg">
+                        <input type="text" class="form-control" placeholder="Ej: Plomero, clases de guitarra, diseño web...">
+                        <button class="btn btn-primary btn-glow px-4" type="button">
+                            <i class="bi bi-search"></i> Buscar
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
     <section class="py-5">
         <div class="container text-center">
             <h2 class="fw-bold mb-5">Explora por Categorías</h2>
-            <div class="row g-4">
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="category-card">
-                        <div class="icon-wrapper"><i class="bi bi-house-gear-fill"></i></div>
-                        <p>Hogar</p>
+            <div class="row g-4 justify-content-center">
+                
+                <div class="col-6 col-md-3">
+                    <div class="category-card" id="btn-electricidad">
+                        <div class="icon-wrapper"><i class="bi bi-plug-fill"></i></div>
+                        <p>Electricidad</p>
                     </div>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="category-card">
-                        <div class="icon-wrapper"><i class="bi bi-pc-display-horizontal"></i></div>
-                        <p>Tecnología</p>
+                
+                <div class="col-6 col-md-3">
+                    <div class="category-card" id="btn-plomeria">
+                        <div class="icon-wrapper"><i class="bi bi-wrench-adjustable"></i></div>
+                        <p>Plomería</p>
                     </div>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="category-card">
-                        <div class="icon-wrapper"><i class="bi bi-book-half"></i></div>
-                        <p>Clases</p>
+                
+                <div class="col-6 col-md-3">
+                    <div class="category-card" id="btn-carpinteria">
+                        <div class="icon-wrapper"><i class="bi bi-hammer"></i></div>
+                        <p>Carpintería</p>
                     </div>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="category-card">
-                        <div class="icon-wrapper"><i class="bi bi-palette-fill"></i></div>
-                        <p>Diseño</p>
+
+                <div class="col-6 col-md-3">
+                    <div class="category-card" id="btn-construccion">
+                        <div class="icon-wrapper"><i class="bi bi-house-up-fill"></i></div>
+                        <p>Construcción & Remodelación</p>
                     </div>
                 </div>
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="category-card">
-                        <div class="icon-wrapper"><i class="bi bi-heart-pulse-fill"></i></div>
-                        <p>Bienestar</p>
-                    </div>
-                </div>
-                <div class="col-6 col-md-4 col-lg-2">
-                    <div class="category-card">
-                        <div class="icon-wrapper"><i class="bi bi-truck"></i></div>
-                        <p>Transporte</p>
-                    </div>
-                </div>
+
             </div>
         </div>
     </section>
 
+   
+     <!-- Contenedor de Servicios -->
     <section class="py-5 bg-light">
-        <div class="container">
-            <h2 class="fw-bold text-center mb-5">Mis favoritos</h2>
-            <div id="servicesCarousel" class="carousel slide" data-bs-ride="carousel">
-                <div class="carousel-inner" id="carousel-inner-container">
-                    </div>
-                <button class="carousel-control-prev" type="button" data-bs-target="#servicesCarousel" data-bs-slide="prev">
-                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                </button>
-                <button class="carousel-control-next" type="button" data-bs-target="#servicesCarousel" data-bs-slide="next">
-                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                </button>
-            </div>
-        </div>
-    </section>
+    <div class="container">
+    <h2 class="fw-bold text-center mb-4">Servicios</h2>
+    <div id="servicio-container" class="col-12 col-md-6 mx-auto row gy-4"> 
+    <!-- Las tarjetas se mostrarán aquí -->
+     </div>
+    </div>
+    </section> 
+
     
     <section class="cta-section text-white text-center py-5">
         <div class="container">
@@ -135,7 +135,75 @@
     </footer>
 
 
+        <div class="modal fade" id="loginModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title fw-bold">Iniciar Sesión</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+            <form id="loginForm">
+            <div class="mb-3">
+                <label class="form-label">Correo electrónico</label>
+                <input type="email" class="form-control" name="email" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <input type="password" class="form-control" name="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 btn-glow">Ingresar</button>
+            </form>
+            <div id="loginResult" class="mt-3 text-center"></div>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="registerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title fw-<section class="py-5 bg-light">
+                <div class="container">
+                <h2 class="fw-bold text-center mb-4">Servicios</h2>
+                <div id="servicio-container" class="col-12 col-md-6 mx-auto row gy-4">
+            </div>
+
+            <div id="client-form-container" class="d-none mt-4">
+                <h4 class="text-center mb-4">Registro de Cliente</h4>
+                <form id="clientForm">
+                    <input type="text" name="full_name" class="form-control mb-2" placeholder="Nombre completo" required>
+                    <input type="email" name="email" class="form-control mb-2" placeholder="Correo electrónico" required>
+                    <input type="password" name="password" class="form-control mb-3" placeholder="Contraseña (mín. 8 caracteres)" required>
+                    <button type="submit" class="btn btn-primary w-100">Crear Cuenta de Cliente</button>
+                </form>
+            </div>
+
+            <div id="provider-form-container" class="d-none mt-4">
+                <h4 class="text-center mb-4">Registro de Proveedor</h4>
+                <form id="providerForm">
+                    <input type="text" name="full_name" class="form-control mb-2" placeholder="Nombre completo" required>
+                    <input type="email" name="email" class="form-control mb-2" placeholder="Correo electrónico" required>
+                    <input type="password" name="password" class="form-control mb-2" placeholder="Contraseña (mín. 8 caracteres)" required>
+                    <input type="text" name="phone_number" class="form-control mb-2" placeholder="Número de WhatsApp (10 dígitos)" required>
+                    <input type="url" name="personal_picture" class="form-control mb-2" placeholder="URL de tu foto de perfil" required>
+                    <select name="city" id="provider-city-select" class="form-select mb-2" required>
+                        <option value="" disabled selected>Selecciona tu ciudad...</option>
+                    </select>
+                    <textarea name="bio" class="form-control mb-3" placeholder="Cuéntanos un poco sobre ti y tus servicios..."></textarea>
+                    <button type="submit" class="btn btn-primary w-100">Crear Cuenta de Proveedor</button>
+                </form>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../js/script.js"></script>
+    <script src="../js/script1.js" type="module"></script>
 </body>
 </html>
+
+
+
