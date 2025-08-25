@@ -52,7 +52,7 @@ const providerValidationRules = [
 
 // RUTAS DE REGISTRO (CON VERIFICACIÓN DE CONTRASEÑA)
 
-// --- REGISTRO DE PROVEEDOR ---
+// REGISTRO DE PROVEEDOR 
 router.post("/provider", providerValidationRules, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {

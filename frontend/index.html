@@ -41,8 +41,12 @@
 
             <div id="user-buttons" class="d-none d-flex align-items-center ms-lg-3">
                 <a href="#" class="btn btn-outline-primary me-3 d-none" id="switch-mode-btn"></a>
-                <a href="#" class="nav-link fw-bold me-3">Mi Perfil</a>
-                <button class="btn btn-danger btn-sm" id="logout-btn">Cerrar Sesión</button>
+                <a href="#" class="nav-link fw-bold me-3 d-flex align-items-center" id="profile-link">
+                    <i class="bi bi-person-circle me-1"></i> Mi Perfil
+                </a>
+                <button class="btn btn-danger btn-sm" id="logout-btn">
+                    <i class="bi bi-box-arrow-right"></i>
+                </button>
             </div>
 
         </div>
@@ -56,7 +60,7 @@
             <div class="row justify-content-center">
                 <div class="col-md-8">
                     <div class="input-group input-group-lg shadow-lg">
-                        <input type="text" class="form-control" placeholder="Ej: Plomero, clases de guitarra, diseño web...">
+                        <input type="text" class="form-control" placeholder="Ej: Plomero, electricista, carpintero, construcción...">
                         <button class="btn btn-primary btn-glow px-4" type="button">
                             <i class="bi bi-search"></i> Buscar
                         </button>

@@ -1,7 +1,7 @@
-// Importamos las funciones que se comunican con la API desde el service worker
+
 import { loginUser, registerClient, registerProvider, getCities, checkEmailExists, requestPasswordReset } from './api/authService.js';
 
-// --- DATOS SIMULADOS (Eventualmente vendrán de tu API) ---
+//  DATOS SIMULADOS (luego vendrán de tu API) 
 const featuredServices = [
     {
         img: 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?q=80&w=2070&auto=format&fit=crop',
@@ -53,7 +53,7 @@ const featuredServices = [
     }
 ];
 
-// --- PUNTO DE ENTRADA PRINCIPAL ---
+// PUNTO DE ENTRADA PRINCIPAL 
 document.addEventListener('DOMContentLoaded', () => {
     // Cargar funcionalidades de la página
     loadFeaturedServices();
@@ -64,8 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupForgotPasswordForm();
 });
 
-// --- LÓGICA DE LA INTERFAZ "INTELIGENTE" ---
-// en frontend/js/main.js
+// LÓGICA DE LA INTERFAZ "INTELIGENTE" 
 
 function setupSmartEmailCheck(emailInputId, passwordInputId, messageDivId, userType) {
     const emailInput = document.getElementById(emailInputId);
@@ -115,7 +114,7 @@ function setupSmartForms() {
     setupSmartEmailCheck('client-email', 'client-password', 'client-form-message', 'client');
 }
 
-// --- LÓGICA DEL CARRUSEL ---
+// LÓGICA DEL CARRUSEL 
 function loadFeaturedServices() {
     const carouselContainer = document.getElementById('carousel-inner-container');
     if (!carouselContainer) return;
@@ -160,7 +159,7 @@ function loadFeaturedServices() {
     }
 }
 
-// --- LÓGICA DE MODALES ---
+// LÓGICA DE MODALES 
 function setupModalListeners() {
     // Selectores de los elementos del modal de registro
     const roleSelector = document.getElementById('role-selector');
@@ -202,7 +201,7 @@ function setupModalListeners() {
         });
     }
 }
-// --- LÓGICA DE ENVÍO DE FORMULARIOS ---
+// LÓGICA DE ENVÍO DE FORMULARIOS 
 function setupFormSubmissions() {
     const loginForm = document.getElementById("loginForm");
     const clientForm = document.getElementById("clientForm");
@@ -259,7 +258,7 @@ function setupFormSubmissions() {
     });
 }
 
-// --- CARGA DE DATOS (CIUDADES) ---
+// CARGA DE DATOS CIUDADES
 async function loadCities() {
     const citySelect = document.getElementById('provider-city-select');
     if (!citySelect) return;
@@ -276,7 +275,7 @@ async function loadCities() {
     }
 }
 
-// --- LÓGICA DE ESTADO DE SESIÓN Y NAVEGACIÓN ---
+// LÓGICA DE ESTADO DE SESIÓN Y NAVEGACIÓN 
 function updateNavbar() {
     const token = localStorage.getItem('token');
     const guestButtons = document.getElementById('guest-buttons');
@@ -284,7 +283,7 @@ function updateNavbar() {
     const switchModeBtn = document.getElementById('switch-mode-btn');
 
     if (token) {
-        // --- El usuario ESTÁ logueado ---
+        // El usuario está logueado 
         guestButtons.classList.add('d-none');
         userButtons.classList.remove('d-none');
 
@@ -298,7 +297,7 @@ function updateNavbar() {
 
         // Lógica del botón para cambiar de modo
         if (userRoles.includes('provider') && userRoles.includes('client')) {
-            switchModeBtn.classList.remove('d-none'); // Hacemos visible el botón
+            switchModeBtn.classList.remove('d-none'); // Hacemos visible el boton
 
             if (isProviderView) {
                 // Si está en la vista de proveedor, el botón debe llevar a la vista de cliente
@@ -307,7 +306,6 @@ function updateNavbar() {
             } else {
                 // Si está en la vista de cliente, el botón debe llevar a la vista de proveedor
                 switchModeBtn.textContent = 'Modo Proveedor';
-                // ¡IMPORTANTE! Asegúrate de que esta sea la URL correcta para tu dashboard de proveedor
                 switchModeBtn.href = 'provider-dashboard.html'; 
             }
         } else {
@@ -318,29 +316,27 @@ function updateNavbar() {
         // Lógica para el botón de Cerrar Sesión
         document.getElementById('logout-btn').addEventListener('click', () => {
             localStorage.removeItem('token');
-            window.location.href = 'index.html'; // Redirigir al inicio después de cerrar sesión
+            window.location.href = 'index.html'; 
         });
 
     } else {
-        // --- El usuario NO está logueado ---
+        // El usuario NO está logueado 
         guestButtons.classList.remove('d-none');
         userButtons.classList.add('d-none');
     }
 }
 
-// En tu punto de entrada principal, asegúrate de llamar a la nueva función
+
 document.addEventListener('DOMContentLoaded', () => {
-    updateNavbar(); // Reemplaza la llamada a updateUIBasedOnLoginState
-    // ... el resto de tus funciones (loadFeaturedServices, etc.)
+    updateNavbar(); 
 });
 
-// --- LÓGICA DEL FORMULARIO DE "OLVIDÉ MI CONTRASEÑA" ---
+// LÓGICA DEL FORMULARIO DE "OLVIDÉ MI CONTRASEÑA"
 function setupForgotPasswordForm() {
     const forgotForm = document.getElementById('forgotPasswordForm');
     if (!forgotForm) return;
 
     forgotForm.addEventListener('submit', async (e) => {
-        // Prevenimos la recarga de la página
         e.preventDefault(); 
         
         const resultDiv = document.getElementById('forgotPasswordResult');
@@ -350,7 +346,6 @@ function setupForgotPasswordForm() {
         resultDiv.className = 'mt-3 text-center text-info';
 
         try {
-            // Asumimos que esta función existe en tu authService.js
             const result = await requestPasswordReset(email);
             resultDiv.textContent = result.message;
             resultDiv.className = 'mt-3 text-center text-success';
