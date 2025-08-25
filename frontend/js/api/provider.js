@@ -2,7 +2,7 @@ import { API_URL } from "./config.js";
 
 export async function getMyServices(id_providerP) {
     try {
-        const response = await fetch(`${API_URL}/services/my/${id_providerP}`);
+        const response = await fetch(`${API_URL}/api/services/my/${id_providerP}`);
         if (!response.ok) throw new Error("Error al obtener los servicios");
         const data = await response.json();
         return data;
@@ -14,7 +14,7 @@ export async function getMyServices(id_providerP) {
 
 export async function getCategories() {
     try {
-        const response = await fetch(`${API_URL}/categories`);
+        const response = await fetch(`${API_URL}/api/categories`);
         if (!response.ok) throw new Error("Error al obtener las categorías");
         const data = await response.json();
         return data;
@@ -26,7 +26,7 @@ export async function getCategories() {
 
 export async function postService(serviceData) {
     try {
-        const response = await fetch(`${API_URL}/services`, {
+        const response = await fetch(`${API_URL}/api/services`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -44,7 +44,7 @@ export async function postService(serviceData) {
 
 export async function deleteService(id_service) {
     try {
-        const response = await fetch(`${API_URL}/services/${id_service}`, {
+        const response = await fetch(`${API_URL}/api/services/${id_service}`, {
             method: "DELETE"
         });
         if (!response.ok) throw new Error("Error al eliminar el servicio");
@@ -57,7 +57,7 @@ export async function deleteService(id_service) {
 
 export async function putService(id_service, serviceData) {
     try {
-        const response = await fetch(`${API_URL}/services/${id_service}`, {
+        const response = await fetch(`${API_URL}/api/services/${id_service}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json"
