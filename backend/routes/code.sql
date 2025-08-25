@@ -78,3 +78,8 @@ CREATE TABLE contracted_services (
     FOREIGN KEY (id_client) REFERENCES clients(id_client),
     UNIQUE(contacted_date,id_service,id_client)
 );
+
+ALTER TABLE users
+ADD COLUMN reset_token VARCHAR(255) NULL,
+ADD COLUMN reset_token_expires DATETIME NULL;
+

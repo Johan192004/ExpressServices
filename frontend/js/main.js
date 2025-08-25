@@ -1,5 +1,5 @@
 // Importamos las funciones que se comunican con la API desde el service worker
-import { loginUser, registerClient, registerProvider, getCities, checkEmailExists } from './api/authService.js';
+import { loginUser, registerClient, registerProvider, getCities, checkEmailExists, requestPasswordReset } from './api/authService.js';
 
 // --- DATOS SIMULADOS (Eventualmente vendrán de tu API) ---
 const featuredServices = [
@@ -61,9 +61,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupModalListeners();
     setupFormSubmissions();
     setupSmartForms();
+    setupForgotPasswordForm();
 });
 
 // --- LÓGICA DE LA INTERFAZ "INTELIGENTE" ---
+// en frontend/js/main.js
+
 function setupSmartEmailCheck(emailInputId, passwordInputId, messageDivId, userType) {
     const emailInput = document.getElementById(emailInputId);
     const passwordInput = document.getElementById(passwordInputId);
@@ -75,7 +78,9 @@ function setupSmartEmailCheck(emailInputId, passwordInputId, messageDivId, userT
         const email = e.target.value;
         
         if (!email || !e.target.checkValidity()) {
+            // Restablecemos a estado normal si el campo está vacío o inválido
             passwordInput.disabled = false;
+            passwordInput.placeholder = 'Contraseña (mín. 8 caracteres)';
             messageDiv.textContent = '';
             return;
         }
@@ -83,21 +88,20 @@ function setupSmartEmailCheck(emailInputId, passwordInputId, messageDivId, userT
         try {
             const response = await checkEmailExists(email);
             if (response.exists) {
-                const message = userType === 'provider' 
-                    ? `👋 <strong>¡Hola de nuevo!</strong> Ya tienes una cuenta. Completa tu perfil para ser proveedor.`
-                    : `👋 <strong>¡Hola de nuevo!</strong> Ya tienes una cuenta. Simplemente inicia sesión.`;
-
-                messageDiv.innerHTML = message;
-                passwordInput.disabled = true;
-                passwordInput.value = '********';
+                // Si el email existe, pedimos la contraseña
+                messageDiv.innerHTML = `👋 <strong>¡Hola de nuevo!</strong> Ingresa tu contraseña actual para continuar.`;
+                passwordInput.placeholder = 'Ingresa tu contraseña actual';
+                passwordInput.disabled = false; // Nos aseguramos de que esté HABILITADO
+                passwordInput.value = ''; // Limpiamos el campo por si acaso
             } else {
+                // Si el email no existe, es un registro normal
                 messageDiv.textContent = '';
+                passwordInput.placeholder = 'Contraseña (mín. 8 caracteres)';
                 passwordInput.disabled = false;
                 passwordInput.value = '';
             }
         } catch (error) {
             console.error(error);
-            messageDiv.textContent = 'No se pudo verificar el correo. Inténtalo de nuevo.';
         }
     });
 }
@@ -270,4 +274,90 @@ async function loadCities() {
     } catch (error) {
         console.error(error.message);
     }
+}
+
+// --- LÓGICA DE ESTADO DE SESIÓN Y NAVEGACIÓN ---
+function updateNavbar() {
+    const token = localStorage.getItem('token');
+    const guestButtons = document.getElementById('guest-buttons');
+    const userButtons = document.getElementById('user-buttons');
+    const switchModeBtn = document.getElementById('switch-mode-btn');
+
+    if (token) {
+        // --- El usuario ESTÁ logueado ---
+        guestButtons.classList.add('d-none');
+        userButtons.classList.remove('d-none');
+
+        // Decodificamos el token para leer los roles
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const userRoles = payload.user.roles || [];
+        console.log("Roles detectados:", userRoles); 
+
+        // Verificamos en qué página estamos
+        const isProviderView = window.location.pathname.includes('provider-dashboard.html');
+
+        // Lógica del botón para cambiar de modo
+        if (userRoles.includes('provider') && userRoles.includes('client')) {
+            switchModeBtn.classList.remove('d-none'); // Hacemos visible el botón
+
+            if (isProviderView) {
+                // Si está en la vista de proveedor, el botón debe llevar a la vista de cliente
+                switchModeBtn.textContent = 'Modo Cliente';
+                switchModeBtn.href = 'index.html';
+            } else {
+                // Si está en la vista de cliente, el botón debe llevar a la vista de proveedor
+                switchModeBtn.textContent = 'Modo Proveedor';
+                // ¡IMPORTANTE! Asegúrate de que esta sea la URL correcta para tu dashboard de proveedor
+                switchModeBtn.href = 'provider-dashboard.html'; 
+            }
+        } else {
+            // Si el usuario no tiene ambos roles, el botón permanece oculto
+            switchModeBtn.classList.add('d-none');
+        }
+
+        // Lógica para el botón de Cerrar Sesión
+        document.getElementById('logout-btn').addEventListener('click', () => {
+            localStorage.removeItem('token');
+            window.location.href = 'index.html'; // Redirigir al inicio después de cerrar sesión
+        });
+
+    } else {
+        // --- El usuario NO está logueado ---
+        guestButtons.classList.remove('d-none');
+        userButtons.classList.add('d-none');
+    }
+}
+
+// En tu punto de entrada principal, asegúrate de llamar a la nueva función
+document.addEventListener('DOMContentLoaded', () => {
+    updateNavbar(); // Reemplaza la llamada a updateUIBasedOnLoginState
+    // ... el resto de tus funciones (loadFeaturedServices, etc.)
+});
+
+// --- LÓGICA DEL FORMULARIO DE "OLVIDÉ MI CONTRASEÑA" ---
+function setupForgotPasswordForm() {
+    const forgotForm = document.getElementById('forgotPasswordForm');
+    if (!forgotForm) return;
+
+    forgotForm.addEventListener('submit', async (e) => {
+        // Prevenimos la recarga de la página
+        e.preventDefault(); 
+        
+        const resultDiv = document.getElementById('forgotPasswordResult');
+        const email = forgotForm.querySelector('input[name="email"]').value;
+
+        resultDiv.textContent = 'Enviando enlace...';
+        resultDiv.className = 'mt-3 text-center text-info';
+
+        try {
+            // Asumimos que esta función existe en tu authService.js
+            const result = await requestPasswordReset(email);
+            resultDiv.textContent = result.message;
+            resultDiv.className = 'mt-3 text-center text-success';
+            forgotForm.reset();
+        } catch (error) {
+            resultDiv.textContent = `Error: ${error.message}`;
+            resultDiv.className = 'mt-3 text-center text-danger';
+        }
+    });
 }
