@@ -72,3 +72,33 @@ export async function putService(id_service, serviceData) {
         return null;
     }
 }
+
+export async function getProviderById(id_provider) {
+    try {
+        const response = await fetch(`${API_URL}/api/providers/${id_provider}`);
+        if (!response.ok) throw new Error("Error al obtener el proveedor");
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+}
+
+export async function putProvider(id_provider, providerData) {
+    try {
+        const response = await fetch(`${API_URL}/api/providers/${id_provider}`, {
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(providerData)
+        });
+        if (!response.ok) throw new Error("Error al actualizar el proveedor");
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error(error);
+        return null;
+    }
+}
