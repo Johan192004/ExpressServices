@@ -223,6 +223,10 @@ body {
     height: 45px;
     font-size: 1.1rem;
     transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
 }
 
 #logout-btn:hover {
@@ -231,4 +235,37 @@ body {
     border-color: #dc3545;
     transform: scale(1.1); 
     box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+}
+
+/* ======== ESTILOS PARA EL CHAT MODAL ======== */
+.chat-bubble {
+    padding: 8px 12px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    max-width: 75%;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-bubble.sent {
+    background-color: var(--primary-color);
+    color: white;
+    align-self: flex-end; /* Alinea a la derecha */
+    align-items: flex-end;
+}
+
+.chat-bubble.received {
+    background-color: #e9ecef; /* Gris suave */
+    color: var(--dark-gray);
+    align-self: flex-start; /* Alinea a la izquierda */
+    align-items: flex-start;
+}
+
+.chat-bubble .message-content {
+    margin-bottom: 2px;
+}
+
+.chat-bubble .message-time {
+    font-size: 0.7rem;
+    opacity: 0.8;
 }

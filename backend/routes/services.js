@@ -2,41 +2,41 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../models/db"); // aquí importamos la conexión
 
-// GET services con filtros
+
 router.get("/", async (req, res) => {
-  try {
-    const { category, experience_years, hour_price } = req.query;
+    try {
+        // CAMBIO CLAVE: Ahora esperamos 'id_category' en lugar de 'category'
+        const { id_category, experience_years, hour_price } = req.query;
 
-    let query = `SELECT u.personal_picture, u.full_name AS provider_name,s.id_service,s.name,s.description,s.hour_price,s.creation_date,s.experience_years,u.email, u.phone_number FROM services s 
-            INNER JOIN providers p ON s.id_provider=p.id_provider 
-            INNER JOIN users u ON p.id_user=u.id_user 
-            WHERE 1=1`;
-    const params = [];
+        let query = `SELECT u.personal_picture, u.full_name AS provider_name, s.id_service, s.name, s.description, s.hour_price, s.creation_date, s.experience_years, u.email, u.phone_number 
+                     FROM services s 
+                     INNER JOIN providers p ON s.id_provider=p.id_provider 
+                     INNER JOIN users u ON p.id_user=u.id_user 
+                     WHERE 1=1`;
+        const params = [];
 
-    if (category) {
+        // CAMBIO CLAVE: La búsqueda compleja por nombre se reemplaza por esta simple validación
+        if (id_category) {
+            query += " AND s.id_category = ?";
+            params.push(parseInt(id_category));
+        }
 
-      let [categoryResponse] = await pool.query('SELECT id_category FROM categories WHERE title = ?', [category]);
-      query += " AND id_category = ?";
-      params.push(categoryResponse[0].id_category);
+        if (experience_years) {
+            query += " AND s.experience_years >= ?";
+            params.push(parseInt(experience_years));
+        }
+
+        if (hour_price) {
+            query += " AND s.hour_price <= ?";
+            params.push(parseInt(hour_price));
+        }
+
+        const [rows] = await pool.query(query, params);
+        res.status(200).json(rows);
+    } catch (err) {
+        console.error("❌ Error al obtener servicios:", err);
+        res.status(500).json({ error: "Error en el servidor" });
     }
-
-    if (experience_years) {
-      query += " AND experience_years >= ?";
-      params.push(parseInt(experience_years));
-    }
-
-    if (hour_price) {
-      query += " AND hour_price <= ?";
-      params.push(parseInt(hour_price));
-    }
-
-
-    const [rows] = await pool.query(query, params);
-    res.status(200).json(rows);
-  } catch (err) {
-    console.error("❌ Error al obtener servicios:", err);
-    res.status(500).json({ error: "Error en el servidor" });
-  }
 });
 
 router.get("/my/:id_provider", async (req, res) => {
@@ -53,6 +53,30 @@ router.get("/my/:id_provider", async (req, res) => {
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
+
+// --- NUEVA RUTA: Obtener un servicio por su ID ---
+router.get("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `SELECT s.*, u.full_name AS provider_name, u.personal_picture, u.bio, c.title as category_title
+                       FROM services s
+                       JOIN providers p ON s.id_provider = p.id_provider
+                       JOIN users u ON p.id_user = u.id_user
+                       JOIN categories c ON s.id_category = c.id_category
+                       WHERE s.id_service = ?`;
+        
+        const [rows] = await pool.query(query, [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "Servicio no encontrado" });
+        }
+        res.status(200).json(rows[0]);
+    } catch (err) {
+        console.error("❌ Error al obtener el detalle del servicio:", err);
+        res.status(500).json({ error: "Error en el servidor" });
+    }
+});
+
 
 router.post("/", async (req, res) => {
   try {

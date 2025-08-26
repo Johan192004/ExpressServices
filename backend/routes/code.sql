@@ -83,3 +83,58 @@ ALTER TABLE users
 ADD COLUMN reset_token VARCHAR(255) NULL,
 ADD COLUMN reset_token_expires DATETIME NULL;
 
+CREATE TABLE contracts (
+    id_contract INT AUTO_INCREMENT PRIMARY KEY,
+    id_service INT NOT NULL,
+    id_client INT NOT NULL,
+    
+    agreed_hours DECIMAL(5, 2) NOT NULL, -- Ej: 2.5 horas
+    agreed_price DECIMAL(10, 2) NOT NULL, -- Se calcula (precio_hora * horas)
+    
+    -- El estado ahora refleja el nuevo flujo completo
+    status ENUM('pending', 'accepted', 'denied', 'completed', 'paid', 'cancelled') NOT NULL DEFAULT 'pending',
+    
+    offer_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha en que el cliente envía la oferta
+    response_date TIMESTAMP NULL, -- Fecha en que el proveedor responde
+    
+    FOREIGN KEY (id_service) REFERENCES services(id_service),
+    FOREIGN KEY (id_client) REFERENCES clients(id_client)
+);
+
+
+-- ===================================================================
+-- NUEVAS TABLAS PARA EL CHAT INTERNO
+-- ===================================================================
+
+-- Tabla para agrupar una conversación entre un cliente y un proveedor sobre un servicio
+CREATE TABLE conversations (
+    id_conversation INT AUTO_INCREMENT PRIMARY KEY,
+    id_client INT NOT NULL,
+    id_provider INT NOT NULL,
+    id_service INT NOT NULL,
+    
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (id_client) REFERENCES clients(id_client),
+    FOREIGN KEY (id_provider) REFERENCES providers(id_provider),
+    FOREIGN KEY (id_service) REFERENCES services(id_service),
+    
+    -- Creamos un índice único para que no se pueda crear más de una conversación
+    -- para el mismo trío de cliente, proveedor y servicio.
+    UNIQUE KEY uk_conversation (id_client, id_provider, id_service)
+);
+
+-- Tabla para guardar cada mensaje individual dentro de una conversación
+CREATE TABLE messages (
+    id_message INT AUTO_INCREMENT PRIMARY KEY,
+    id_conversation INT NOT NULL,
+    sender_id INT NOT NULL, -- Quién envió el mensaje (ID de la tabla 'users')
+    
+    content TEXT NOT NULL,
+    
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_read BOOLEAN DEFAULT FALSE,
+    
+    FOREIGN KEY (id_conversation) REFERENCES conversations(id_conversation),
+    FOREIGN KEY (sender_id) REFERENCES users(id_user)
+);

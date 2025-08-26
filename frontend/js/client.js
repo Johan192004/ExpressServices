@@ -1,159 +1,207 @@
-import { getServicesByCategory } from "./api/client.js";
+// frontend/js/client.js
 
-// Show the 'Soy Proveedor' li only if the role is 'both'
-if (window.sessionStorage.getItem('role') === 'both') {
-    const liProvider = document.getElementById('li-soy-proveedor');
-    if (liProvider) {
-        liProvider.classList.remove('d-none');
-        liProvider.addEventListener('click', () => {
-            window.location.href = 'provider.html';
-        });
+import { getServices, getCategories, getClientConversations, startConversation, getServiceById } from './api/authService.js';
+import { openChatModal } from './ui/chat.js';
+
+// ===================================================================
+// PUNTO DE ENTRADA PRINCIPAL: Se ejecuta cuando la página ha cargado
+// ===================================================================
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Verificamos si el usuario tiene permiso para estar aquí
+    if (!localStorage.getItem('token')) {
+        alert('Debes iniciar sesión para acceder a esta página.');
+        window.location.href = '../../index.html';
+        return;
     }
-}
-
-
-
-
-
-function createServicesSection() {
-    if(!document.getElementById("h2Services")){
-        const servicesOutputContainer = document.getElementById("servicesContainer");
-        document.getElementById("servicesSection").classList.remove("d-none");
-        // Usar row y justify-content-center para responsividad
-        servicesOutputContainer.innerHTML=`<h2 class="fw-bold text-center mb-4" id="h2Services">Servicios</h2>
-            <div id="servicio-container" class="row row-cols-1 row-cols-sm-2 row-cols-md-3 row-cols-lg-4 g-4 justify-content-center">
-                <!-- Las tarjetas se mostrarán aquí -->
-            </div>`;
-    }
-}
-
-
-function showServices(list) {
-    const servicesContainer = document.getElementById("servicio-container");
-    servicesContainer.innerHTML = "";
-    // No sobreescribir las clases de grid responsivo
-
-    list.forEach(service => {
-        const card = document.createElement('div');
-        card.className = "col-12 col-md-4 p-2";
-        card.innerHTML = `
-            <div class="card service-card h-100">
-                <div class="card-body text-center">
-                    <img src="${service.personal_picture}" alt="${service.provider_name}" class="provider-avatar">
-                    <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
-                    <p class="card-text text-muted">Por ${service.provider_name}</p>
-                    <p class="card-text">${service.description}</p>
-                    <hr>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <p class="card-price mb-0">$${service.hour_price.toLocaleString('es-CO')} <span>/hora</span></p>
-                        <button class="btn btn-outline-primary btn-see-more">Ver Más</button>
-                    </div>
-                </div>
-            </div>
-        `;
-        card.querySelector('.btn-see-more').addEventListener('click', () => showServiceDetailModal(service));
-        servicesContainer.appendChild(card);
-    });
-}
-
-// Modal reutilizable para detalles de servicio
-function showServiceDetailModal(service) {
-
-    // Eliminar modal anterior de detalles si existe
-    let oldModal = document.getElementById('serviceDetailModal');
-    if (oldModal) oldModal.remove();
-    // Eliminar modal anterior de contacto si existe
-    let oldContactModal = document.getElementById('contactModal');
-    if (oldContactModal) oldContactModal.remove();
-
-    const modalHtml = `
-        <div class="modal fade" id="serviceDetailModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Detalles del Servicio</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <h5>${service.name}</h5>
-                        <p><strong>Proveedor:</strong> ${service.provider_name}</p>
-                        <p><strong>Descripción:</strong> ${service.description}</p>
-                        <p><strong>Precio por hora:</strong> $${service.hour_price.toLocaleString('es-CO')}</p>
-                        <p><strong>Años de experiencia:</strong> ${service.experience_years}</p>
-                        <p><strong>Categoría:</strong> ${service.category_title || ''}</p>
-                        <p><strong>Fecha de creación:</strong> ${service.creation_date || ''}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline-primary" id="btn-contratar">Contratar</button>
-                        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Modal de contacto -->
-        <div class="modal fade" id="contactModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Contacto del Proveedor</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <p><strong>Email:</strong> <span id="contact-email">${service.email || 'No disponible'}</span></p>
-                        <p><strong>Teléfono:</strong> <span id="contact-phone">${service.phone_number || 'No disponible'}</span></p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
-    modal.show();
-    // Evento para abrir el modal de contacto
-    document.getElementById('btn-contratar').addEventListener('click', () => {
-        // Cerrar el modal de detalles antes de abrir el de contacto
-        const detailModalEl = document.getElementById('serviceDetailModal');
-        const detailModal = bootstrap.Modal.getInstance(detailModalEl);
-        if (detailModal) detailModal.hide();
-        // Esperar a que termine la animación antes de mostrar el de contacto
-        setTimeout(() => {
-            const contactModal = new bootstrap.Modal(document.getElementById('contactModal'));
-            contactModal.show();
-        }, 300); // 300ms coincide con la animación de Bootstrap
-    });
-}
-
-
-const btnPlumbing = document.getElementById("btn-plumbing");
-const btnElectricity = document.getElementById("btn-electricity");
-const btnCarpentry = document.getElementById("btn-carpentry");
-const btnConstruction = document.getElementById("btn-construction");
-
-function createBtnEventListener(referenceBtn, category) {
-
-
-    referenceBtn.addEventListener("click", async () => {
-        createServicesSection();
-        const h2Services = document.getElementById("h2Services");
-
-
-        h2Services.textContent = category;
-
-        const services = await getServicesByCategory(category);
-        showServices(services);
-    });
-}
-
-createBtnEventListener(btnPlumbing, "Plumbing");
-createBtnEventListener(btnElectricity, "Electricity");
-createBtnEventListener(btnCarpentry, "Cleaning");
-createBtnEventListener(btnConstruction, "Carpentry");
-
-const btnLogOut = document.getElementById('btn-logout');
-btnLogOut.addEventListener('click', () => {
-    window.sessionStorage.clear();
-    window.location.href = '../../index.html';
+    
+    // 2. Cargamos todos los componentes dinámicos de la página
+    loadAndRenderClientConversations();
+    loadAndSetupCategories();
+    
+    // 3. Activamos todos los "escuchadores" de eventos
+    setupPageEventListeners();
 });
+
+
+// ===================================================================
+// SECCIÓN 1: LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS
+// (Funciones que piden datos a la API y los "pintan" en el HTML)
+// ===================================================================
+
+/**
+ * Pide las conversaciones del cliente a la API y las muestra en la bandeja de entrada.
+ */
+async function loadAndRenderClientConversations() {
+    const container = document.getElementById('client-conversations-container');
+    if (!container) return;
+    container.innerHTML = '<p class="text-muted">Cargando mensajes...</p>';
+    try {
+        const conversations = await getClientConversations();
+        container.innerHTML = '';
+        if (conversations.length === 0) {
+            container.innerHTML = '<div class="list-group-item"><p class="text-muted mb-0">No has iniciado ninguna conversación.</p></div>';
+            return;
+        }
+        conversations.forEach(convo => {
+            container.innerHTML += `
+                <a href="#" class="list-group-item list-group-item-action conversation-item" data-conversation-id="${convo.id_conversation}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1 fw-bold">${convo.provider_name}</h6>
+                        <small class="text-muted">${new Date(convo.created_at).toLocaleDateString()}</small>
+                    </div>
+                    <p class="mb-1 small">Conversación sobre: <strong>${convo.service_name}</strong></p>
+                </a>`;
+        });
+    } catch (error) {
+        container.innerHTML = '<p class="text-danger">Error al cargar tus mensajes.</p>';
+    }
+}
+
+/**
+ * Pide las categorías a la API, las traduce y las muestra en la página.
+ */
+async function loadAndSetupCategories() {
+    const container = document.getElementById('category-container');
+    if (!container) return;
+    const categoryTranslationMap = { 'Plumbing': 'Plomería', 'Electricity': 'Electricidad', 'Carpentry': 'Carpintería', 'Cleaning': 'Construcción', 'Construction & Remodeling': 'Construcción & Remodelación'};
+
+    try {
+        const categories = await getCategories();
+        container.innerHTML = '';
+        categories.forEach(category => {
+            const translatedName = categoryTranslationMap[category.title] || category.title;
+            const iconClass = (category.title.match(/electric/i) ? 'bi-plug-fill' : 
+                              (category.title.match(/plumb/i) ? 'bi-wrench-adjustable' : 
+                              (category.title.match(/carpen/i) ? 'bi-hammer' : 'bi-house-up-fill')));
+            container.innerHTML += `
+                <div class="col-6 col-sm-3">
+                    <div class="category-card" style="cursor: pointer;" data-id-category="${category.id_category}" data-name-category="${translatedName}">
+                         <div class="icon-wrapper"><i class="bi ${iconClass}"></i></div>
+                         <p class="small">${translatedName}</p>
+                    </div>
+                </div>`;
+        });
+    } catch (error) {
+        container.innerHTML = '<p class="text-danger small">No se pudieron cargar las categorías.</p>';
+    }
+}
+
+/**
+ * "Pinta" una lista de servicios en su contenedor correspondiente.
+ * @param {Array} services - Un array de objetos de servicio.
+ */
+function renderServices(services) {
+    const servicesContainer = document.getElementById("servicio-container");
+    if (!servicesContainer) return;
+    servicesContainer.innerHTML = "";
+    if (services.length === 0) {
+        servicesContainer.innerHTML = '<p class="text-center text-muted col-12">No se encontraron servicios.</p>';
+        return;
+    }
+    services.forEach(service => {
+        servicesContainer.innerHTML += `
+            <div class="col">
+                <div class="card service-card h-100">
+                    <div class="card-body text-center d-flex flex-column">
+                        <img src="${service.personal_picture || 'default.png'}" alt="${service.provider_name}" class="provider-avatar">
+                        <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
+                        <p class="card-text text-muted small">Por ${service.provider_name}</p>
+                        <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                        <hr>
+                        <button class="btn btn-sm btn-outline-primary btn-see-more mt-auto" data-service-id="${service.id_service}">Ver Detalles</button>
+                    </div>
+                </div>
+            </div>`;
+    });
+}
+
+/**
+ * Muestra un modal con la información detallada de un servicio específico.
+ * @param {string} serviceId - El ID del servicio a mostrar.
+ */
+async function showServiceDetailModal(serviceId) {
+    document.getElementById('serviceDetailModal')?.remove();
+    try {
+        const service = await getServiceById(serviceId);
+        const modalHtml = `
+            <div class="modal fade" id="serviceDetailModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">${service.name}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-4 text-center">
+                                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}">
+                                    <h5 class="fw-bold">${service.provider_name}</h5>
+                                    <p class="text-muted small">${service.bio || ''}</p>
+                                </div>
+                                <div class="col-md-8">
+                                    <p class="text-muted">Categoría: ${service.category_title || 'No especificada'}</p>
+                                    <p>${service.description}</p>
+                                    <hr>
+                                    <p><strong>Años de experiencia:</strong> ${service.experience_years}</p>
+                                    <h4 class="fw-bold text-primary">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            <button type="button" class="btn btn-primary btn-glow" id="modal-contact-btn" data-service-id="${service.id_service}">Contactar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        new bootstrap.Modal(document.getElementById('serviceDetailModal')).show();
+    } catch (error) {
+        alert('Error al cargar detalles del servicio.');
+    }
+}
+
+
+// ===================================================================
+// SECCIÓN 2: LÓGICA DE EVENTOS
+// (Una única función que maneja todos los clics de la página)
+// ===================================================================
+
+function setupPageEventListeners() {
+    document.body.addEventListener('click', async (e) => {
+        const target = e.target;
+        const categoryCard = target.closest('.category-card');
+        const seeMoreBtn = target.closest('.btn-see-more');
+        const contactBtn = target.closest('#modal-contact-btn');
+        const conversationLink = target.closest('.conversation-item');
+
+        if (categoryCard) {
+            const categoryId = categoryCard.dataset.idCategory;
+            const categoryName = categoryCard.dataset.nameCategory;
+            const servicesTitle = document.getElementById('h2Services');
+            if (servicesTitle) servicesTitle.textContent = `Servicios de ${categoryName}`;
+            try {
+                const services = await getServices({ id_category: categoryId });
+                renderServices(services);
+            } catch (error) { console.error("Error al cargar servicios:", error); }
+        }
+        else if (seeMoreBtn) {
+            const serviceId = seeMoreBtn.dataset.serviceId;
+            showServiceDetailModal(serviceId);
+        }
+        else if (contactBtn) {
+            const serviceId = contactBtn.dataset.serviceId;
+            const detailModal = bootstrap.Modal.getInstance(document.getElementById('serviceDetailModal'));
+            if (detailModal) detailModal.hide();
+            try {
+                const result = await startConversation(serviceId);
+                setTimeout(() => openChatModal(result.id_conversation), 300);
+            } catch (error) { alert(`Error: ${error.message}`); }
+        }
+        else if (conversationLink) {
+            e.preventDefault();
+            const conversationId = conversationLink.dataset.conversationId;
+            openChatModal(conversationId);
+        }
+    });
+}

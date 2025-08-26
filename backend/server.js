@@ -6,42 +6,35 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
-
-//  IMPORTACIÓN DE RUTAS 
-const registerRoutes = require("./routes/registers.js");
-const serviceRoutes = require("./routes/services.js");
-const loginRoutes = require("./routes/login.js");
-const utilsRoutes = require('./routes/utilsRoutes.js');
-const usersRoutes = require('./routes/usersRoutes.js');
-const passwordResetRoutes = require('./routes/passwordResetRoutes.js');
-const favoritesRoutes = require('./routes/favorites.js')
-const categoriesRoutes = require('./routes/categories.js')
-
-
 const PORT = process.env.EXPRESS_PORT || 3000;
 
-//  MIDDLEWARE GLOBALES 
-// Permite peticiones desde otros dominios (frontend)
+// --- MIDDLEWARE GLOBALES ---
 app.use(cors());
-// Permite que el servidor entienda y procese datos en formato JSON
 app.use(express.json());
 
-// DEFINICIÓN DE ENDPOINTS
-// Rutas públicas para registro y login
+// --- IMPORTACIÓN DE RUTAS ---
+const registerRoutes = require("./routes/registers.js");
+const loginRoutes = require("./routes/login.js");
+const serviceRoutes = require("./routes/services.js");
+const categoriesRoutes = require('./routes/categories.js');
+const usersRoutes = require('./routes/usersRoutes.js');
+const conversationsRoutes = require('./routes/conversationsRoutes.js');
+const passwordResetRoutes = require('./routes/passwordResetRoutes.js');
+const favoritesRoutes = require('./routes/favorites.js');
+const utilsRoutes = require('./routes/utilsRoutes.js');
+
+// --- DEFINICIÓN DE ENDPOINTS ---
 app.use("/api/register", registerRoutes);
-app.use("/api/services", serviceRoutes);
-
-// ------------------- INICIO SERVIDOR -------------------
 app.use("/api/login", loginRoutes);
-app.use('/api/utils', utilsRoutes); 
+app.use("/api/services", serviceRoutes);
+app.use("/api/categories", categoriesRoutes);
 app.use('/api/users', usersRoutes);
-app.use("/api/favorites",favoritesRoutes)
-app.use("/api/categories",categoriesRoutes)
-app.use('/api/password', passwordResetRoutes); 
+app.use('/api/conversations', conversationsRoutes);
+app.use('/api/password', passwordResetRoutes);
+app.use("/api/favorites", favoritesRoutes);
+app.use('/api/utils', utilsRoutes);
 
-
-
-// INICIO DEL SERVIDOR 
+// --- INICIO DEL SERVIDOR ---
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en el puerto ${PORT} ✅`);
 });
