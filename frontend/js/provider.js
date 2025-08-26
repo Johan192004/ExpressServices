@@ -1,256 +1,181 @@
-import { getMyServices, getCategories, postService, deleteService, putService } from "./api/provider.js";
+// frontend/js/provider.js
 
-if (window.sessionStorage.getItem('role') === 'both') {
-    const liClient = document.getElementById('li-i-am-client');
-    if (liClient) {
-        liClient.classList.remove('d-none');
-        liClient.addEventListener('click', () => {
-            window.location.href = 'client.html';
+import { getUserProfile, getMyServices, getCategories, createService, updateService, deleteService, getServiceById, getProviderConversations } from './api/authService.js';
+import { openChatModal } from './ui/chat.js';
+
+let myProviderId = null; // El ID de proveedor del usuario logueado
+
+// --- PUNTO DE ENTRADA PRINCIPAL ---
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        const userProfile = await getUserProfile();
+        if (!userProfile.id_provider) {
+            alert('Acceso denegado. Debes tener un perfil de proveedor.');
+            window.location.href = '/frontend/index.html';
+            return;
+        }
+        myProviderId = userProfile.id_provider;
+        await main();
+    } catch (error) {
+        console.error("Error de autenticación:", error);
+        localStorage.removeItem('token');
+        window.location.href = '/frontend/index.html';
+    }
+});
+
+/** Función principal que orquesta la carga de la página */
+async function main() {
+    await loadAndRenderConversations();
+    await loadCategoriesIntoSelect();
+    await loadMyServices();
+    setupEventListeners();
+}
+
+// --- LÓGICA DE CARGA Y RENDERIZACIÓN ---
+
+async function loadAndRenderConversations() {
+    const container = document.getElementById('conversations-container');
+    if (!container) return;
+    try {
+        const conversations = await getProviderConversations();
+        container.innerHTML = '';
+        if (conversations.length === 0) {
+            container.innerHTML = '<p class="text-muted">No tienes conversaciones nuevas.</p>';
+            return;
+        }
+        conversations.forEach(convo => {
+            const convoElement = document.createElement('a');
+            convoElement.href = '#';
+            convoElement.className = 'list-group-item list-group-item-action conversation-item';
+            convoElement.dataset.conversationId = convo.id_conversation;
+            convoElement.innerHTML = `
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1 fw-bold">${convo.client_name}</h6>
+                    <small>${new Date(convo.created_at).toLocaleDateString()}</small>
+                </div>
+                <p class="mb-1 small">Interesado/a en: <strong>${convo.service_name}</strong></p>
+            `;
+            container.appendChild(convoElement);
         });
+    } catch (error) {
+        container.innerHTML = '<p class="text-danger">Error al cargar conversaciones.</p>';
     }
 }
 
-const myProviderId = window.sessionStorage.getItem("id_provider") || 7;
-const servicesContainer = document.getElementById("servicio-container");
+async function loadMyServices() {
+    const container = document.getElementById('my-services-container');
+    if (!container || !myProviderId) return;
+    container.innerHTML = '<p class="text-muted">Cargando tus servicios...</p>';
+    try {
+        const services = await getMyServices(myProviderId);
+        renderMyServices(services);
+    } catch (error) {
+        container.innerHTML = `<p class="text-danger">${error.message}</p>`;
+    }
+}
 
-function showMyServices(list) {
-    servicesContainer.innerHTML = "";
-    servicesContainer.className = "d-flex justify-content-center";
-
-    list.forEach(service => {
-        const card = document.createElement('div');
-        card.className = "col-12 col-md-4 p-2";
-        card.innerHTML = `
-            <div class="card service-card h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
-                    <p class="card-text text-muted">Por ${service.provider_name}</p>
-                    <p class="card-text">${service.description}</p>
-                    <hr>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <p class="card-price mb-0">$${service.hour_price.toLocaleString('es-CO')} <span>/hora</span></p>
-                        <button class="btn btn-outline-primary btn-see-more">Ver Más</button>
+function renderMyServices(services) {
+    const container = document.getElementById('my-services-container');
+    container.innerHTML = '';
+    if (services.length === 0) {
+        container.innerHTML = '<div class="col-12"><p class="text-center text-muted">Aún no has publicado ningún servicio.</p></div>';
+        return;
+    }
+    services.forEach(service => {
+        container.innerHTML += `
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card service-card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title fw-bold">${service.name}</h5>
+                        <p class="card-text small text-muted flex-grow-1">${service.description.substring(0, 100)}...</p>
+                        <div class="card-footer bg-white border-0 d-flex justify-content-end p-0 pt-3">
+                            <button class="btn btn-outline-secondary btn-sm me-2 btn-edit-service" data-service-id="${service.id_service}" data-bs-toggle="modal" data-bs-target="#serviceFormModal">Editar</button>
+                            <button class="btn btn-outline-danger btn-sm btn-delete-service" data-service-id="${service.id_service}">Eliminar</button>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
-        // Agregar evento al botón "Ver Más"
-        card.querySelector('.btn-see-more').addEventListener('click', () => showServiceModal(service));
-        servicesContainer.appendChild(card);
+            </div>`;
     });
 }
 
-// Crear y mostrar modal de detalles del servicio
-function showServiceModal(service) {
-    // Si ya existe el modal, elimínalo
-    let oldModal = document.getElementById('serviceDetailModal');
-    if (oldModal) oldModal.remove();
-
-    const modalHtml = `
-        <div class="modal fade" id="serviceDetailModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Detalles del Servicio</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <h5>${service.name}</h5>
-                        <p><strong>Proveedor:</strong> ${service.provider_name}</p>
-                        <p><strong>Descripción:</strong> ${service.description}</p>
-                        <p><strong>Precio por hora:</strong> $${service.hour_price.toLocaleString('es-CO')}</p>
-                        <p><strong>Años de experiencia:</strong> ${service.experience_years}</p>
-                        <p><strong>Categoría:</strong> ${service.category_title || ''}</p>
-                        <p><strong>Fecha de creación:</strong> ${service.creation_date || ''}</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button class="btn btn-danger" id="btn-delete-service">Eliminar</button>
-                        <button class="btn btn-secondary" id="btn-edit-service">Editar</button>
-                        <button class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
-    modal.show();
-
-    // Aquí puedes agregar lógica para eliminar y editar
-    document.getElementById('btn-delete-service').addEventListener('click', async () => {
-        if (confirm('¿Estás seguro de que deseas eliminar este servicio?')) {
-            try {
-                const result = await deleteService(service.id_service);
-                if (result && !result.error) {
-                    alert('Servicio eliminado exitosamente.');
-                    // Cerrar el modal
-                    const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('serviceDetailModal'));
-                    modal.hide();
-                    // Refrescar la lista de servicios
-                    const updated = await getMyServices(myProviderId);
-                    showMyServices(updated);
-                } else {
-                    alert('Error al eliminar el servicio.');
-                }
-            } catch (err) {
-                alert('Error al eliminar el servicio.');
-            }
-        }
-    });
-    document.getElementById('btn-edit-service').addEventListener('click', async () => {
-        // Obtener categorías
+async function loadCategoriesIntoSelect() {
+    try {
         const categories = await getCategories();
-        // Generar las opciones del select
-        let optionsHtml = '';
+        const select = document.getElementById('categorySelect');
+        select.innerHTML = '<option value="" disabled selected>Selecciona una categoría</option>';
         categories.forEach(cat => {
-            const selected = cat.id_category == service.id_category ? 'selected' : '';
-            optionsHtml += `<option value="${cat.id_category}" ${selected}>${cat.title}</option>`;
+            select.innerHTML += `<option value="${cat.id_category}">${cat.title}</option>`;
         });
+    } catch (error) { console.error("No se pudieron cargar las categorías", error); }
+}
 
-        // Reemplazar TODO el contenido del modal por el formulario editable
-        const modalContent = document.querySelector('#serviceDetailModal .modal-content');
-        modalContent.innerHTML = `
-            <div class="modal-header">
-                <h5 class="modal-title">Editar Servicio</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="editServiceForm">
-                    <div class="mb-3">
-                        <label class="form-label">Título</label>
-                        <input type="text" class="form-control" name="name" value="${service.name}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Descripción</label>
-                        <textarea class="form-control" name="description" rows="3" required>${service.description}</textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Precio por hora</label>
-                        <input type="number" class="form-control" name="hour_price" value="${service.hour_price}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Años de experiencia</label>
-                        <input type="number" class="form-control" name="experience_years" value="${service.experience_years}" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Categoría</label>
-                        <select class="form-control" name="id_category" required>
-                            ${optionsHtml}
-                        </select>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-                    <button type="button" class="btn btn-secondary ms-2" data-bs-dismiss="modal">Cancelar</button>
-                </form>
-            </div>
-        `;
+// --- LÓGICA DE EVENTOS Y FORMULARIOS ---
 
-        // Manejar el submit del formulario de edición
-        document.getElementById('editServiceForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const updatedData = Object.fromEntries(formData);
+function setupEventListeners() {
+    const serviceModalEl = document.getElementById('serviceFormModal');
+    if (!serviceModalEl) return;
+    
+    const serviceModal = new bootstrap.Modal(serviceModalEl);
+    const serviceForm = document.getElementById('serviceForm');
+    const modalTitle = document.getElementById('service-modal-title');
 
-            // Validar que los campos numéricos no sean negativos
-            const hourPrice = parseFloat(updatedData.hour_price);
-            const experienceYears = parseInt(updatedData.experience_years);
-            if (isNaN(hourPrice) || hourPrice < 0) {
-                alert("El precio por hora no puede ser negativo.");
-                return;
-            }
-            if (isNaN(experienceYears) || experienceYears < 0) {
-                alert("Los años de experiencia no pueden ser negativos.");
-                return;
-            }
-
-            // Llamar a putService
-            const result = await putService(service.id_service, updatedData);
-            if (result && !result.error) {
-                alert("¡Servicio actualizado exitosamente!");
-                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('serviceDetailModal'));
-                modal.hide();
-                // Refrescar la lista de servicios
-                const updated = await getMyServices(myProviderId);
-                showMyServices(updated);
-            } else {
-                alert("Error al actualizar el servicio.");
-            }
-        });
+    document.getElementById('btn-open-create-modal').addEventListener('click', () => {
+        modalTitle.textContent = 'Publicar Nuevo Servicio';
+        serviceForm.reset();
+        serviceForm.querySelector('input[name="id_service"]').value = '';
     });
-}
 
-
-async function main() {
-    const result = await getMyServices(myProviderId);
-    chargeCategories();
-    postServiceFunction();
-    console.log(result);
-    showMyServices(result);
-}
-
-async function chargeCategories() {
-    const categories = await getCategories();
-
-    const selectCategory = document.getElementById("categorySelect");
-    categories.forEach(category => {
-        const option = document.createElement("option");
-        option.value = category.id_category;
-        option.textContent = category.title;
-        console.log(category);
-        selectCategory.appendChild(option);
+    document.getElementById('my-services-container').addEventListener('click', async (e) => {
+        if (e.target.classList.contains('btn-edit-service')) {
+            const serviceId = e.target.dataset.serviceId;
+            try {
+                const service = await getServiceById(serviceId);
+                modalTitle.textContent = 'Editar Servicio';
+                serviceForm.querySelector('input[name="id_service"]').value = service.id_service;
+                serviceForm.querySelector('input[name="name"]').value = service.name;
+                serviceForm.querySelector('textarea[name="description"]').value = service.description;
+                serviceForm.querySelector('input[name="hour_price"]').value = service.hour_price;
+                serviceForm.querySelector('input[name="experience_years"]').value = service.experience_years;
+                serviceForm.querySelector('select[name="id_category"]').value = service.id_category;
+            } catch (error) { alert('No se pudo cargar la información del servicio.'); }
+        }
+        if (e.target.classList.contains('btn-delete-service')) {
+            const serviceId = e.target.dataset.serviceId;
+            if(confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
+                try {
+                    await deleteService(serviceId);
+                    alert('Servicio eliminado.');
+                    loadMyServices();
+                } catch(error) { alert(`Error al eliminar: ${error.message}`); }
+            }
+        }
     });
-}
 
-
-async function postServiceFunction() {
-    const postServiceForm = document.getElementById("postServiceForm");
-    postServiceForm.addEventListener("submit", async (e) => {
+    serviceForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
-        const formData = new FormData(e.target);
-        const serviceData = Object.fromEntries(formData);
-        serviceData.id_provider = parseInt(myProviderId);
-
-        // Validar que id_category no sea vacío ni undefined
-        if (!serviceData.id_category) {
-            alert("Por favor selecciona una categoría válida.");
-            return;
-        }
-
-        // Validar que los campos numéricos no sean negativos
-        const hourPrice = parseFloat(serviceData.hour_price);
-        const experienceYears = parseInt(serviceData.experience_years);
-
-        if (isNaN(hourPrice) || hourPrice < 0) {
-            alert("El precio por hora no puede ser negativo.");
-            return;
-        }
-        if (isNaN(experienceYears) || experienceYears < 0) {
-            alert("Los años de experiencia no pueden ser negativos.");
-            return;
-        }
-
-        // Si todo está bien, continuar
-        console.log(serviceData);
-
-        const result = await postService(serviceData);
-        console.log(result);
-
-        // Mostrar mensaje de éxito y cerrar el modal
-        if (result && !result.error) {
-            alert("¡Servicio publicado exitosamente!");
-            // Cerrar el modal de Bootstrap
-            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('postServiceModal'));
-            modal.hide();
-            // Opcional: limpiar el formulario
-            postServiceForm.reset();
+        const formData = new FormData(serviceForm);
+        const data = Object.fromEntries(formData.entries());
+        const serviceId = data.id_service;
+        try {
+            if (serviceId) {
+                await updateService(serviceId, data);
+                alert('Servicio actualizado con éxito.');
+            } else {
+                data.id_provider = myProviderId;
+                await createService(data);
+                alert('Servicio creado con éxito.');
+            }
+            serviceModal.hide();
+            loadMyServices();
+        } catch (error) { alert(`Error al guardar: ${error.message}`); }
+    });
+    
+    document.getElementById('conversations-container').addEventListener('click', (e) => {
+        const conversationLink = e.target.closest('.conversation-item');
+        if (conversationLink) {
+            e.preventDefault();
+            const conversationId = conversationLink.dataset.conversationId;
+            openChatModal(conversationId);
         }
     });
 }
-
-const btnLogOut = document.getElementById('btn-logout');
-btnLogOut.addEventListener('click', () => {
-    window.sessionStorage.clear();
-    window.location.href = '../../index.html';
-});
-
-main();
