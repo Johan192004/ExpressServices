@@ -130,6 +130,22 @@ export const getServiceById = async (serviceId) => {
     return response.json();
 };
 
+export const getClientById = async (id_client) => {
+    const response = await fetch(`${API_URL}/api/clients/${id_client}`);
+    if (!response.ok) throw new Error('No se pudo cargar la información del cliente.');
+    return response.json();
+};
+
+export const putClient = async (id_client, data) => {
+    const response = await fetch(`${API_URL}/api/clients/${id_client}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Error al actualizar el cliente.');
+    return result;
+};
 
 // ===================================================================
 // FUNCIONES PROTEGIDAS (Necesitan token y usan el helper)
