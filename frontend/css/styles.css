@@ -150,6 +150,18 @@ body {
     display: block;
     margin: 15px auto 0;
 }
+
+/* Estilo general para provider-avatar en cualquier contexto */
+.provider-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
 .service-card .card-title {
     color: var(--primary-color);
 }

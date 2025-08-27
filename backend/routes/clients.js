@@ -17,10 +17,10 @@ router.get('/:id', async (req, res) => {
 
 router.put('/:id_client', async (req, res) => {
     const { id_client } = req.params;
-    const { email, full_name } = req.body;
+    const { full_name } = req.body;
 
     try {
-        let [result] = await pool.query(`UPDATE users SET email = ?, full_name = ? WHERE id_user = (SELECT id_user FROM clients WHERE id_client = ?)`, [email, full_name, id_client]);
+        let [result] = await pool.query(`UPDATE users SET full_name = ? WHERE id_user = (SELECT id_user FROM clients WHERE id_client = ?)`, [full_name, id_client]);
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Cliente no encontrado' });

@@ -12,6 +12,9 @@ import { getReviewsByServiceId } from "./api/reviews.js";
 let myClientId = null; // El ID de cliente del usuario logueado
 let currentFavorites = []; // Array para almacenar los IDs de servicios favoritos
 
+// Limpiar variable global al iniciar para evitar conflictos
+window.currentServiceData = null;
+
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificamos si el usuario tiene permiso para estar aquí
     if (!localStorage.getItem('token')) {
@@ -38,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAndRenderClientContracts();
     setupFavoritesButton();
     setupProfileModal();
+    setupScrollToTopButton(); // Configurar botón de scroll
 });
 
 
@@ -136,22 +140,28 @@ function renderServices(services) {
     
     services.forEach(service => {
         const isFavorite = currentFavorites.includes(service.id_service);
-        servicesContainer.innerHTML += `
-            <div class="col">
-                <div class="card service-card h-100">
-                    <div class="card-body text-center d-flex flex-column">
-                        <img src="${service.personal_picture || 'default.png'}" alt="${service.provider_name}" class="provider-avatar">
-                        <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
-                        <p class="card-text text-muted small">Por ${service.provider_name}</p>
-                        <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
-                        <button class="btn btn-link p-0 favorite-btn" data-service-id="${service.id_service}" title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
-                            <i class="bi ${isFavorite ? 'bi-star-fill text-warning' : 'bi-star'}" style="font-size: 1.5rem;"></i>
-                        </button>
-                        <hr>
-                        <button class="btn btn-sm btn-outline-primary btn-see-more mt-auto" data-service-id="${service.id_service}">Ver Detalles</button>
-                    </div>
+        const cardElement = document.createElement('div');
+        cardElement.className = 'col';
+        cardElement.innerHTML = `
+            <div class="card service-card h-100">
+                <div class="card-body text-center d-flex flex-column">
+                    <img alt="${service.provider_name}" class="provider-avatar">
+                    <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
+                    <p class="card-text text-muted small">Por ${service.provider_name}</p>
+                    <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                    <button class="btn btn-link p-0 favorite-btn" data-service-id="${service.id_service}" title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+                        <i class="bi ${isFavorite ? 'bi-star-fill text-warning' : 'bi-star'}" style="font-size: 1.5rem;"></i>
+                    </button>
+                    <hr>
+                    <button class="btn btn-sm btn-outline-primary btn-see-more mt-auto" data-service-id="${service.id_service}">Ver Detalles</button>
                 </div>
             </div>`;
+        
+        // Configurar fallback para la imagen después de agregar al DOM
+        const img = cardElement.querySelector('.provider-avatar');
+        setupImageFallback(img, service.provider_name, service.personal_picture, 60);
+        
+        servicesContainer.appendChild(cardElement);
     });
 }
 
@@ -159,12 +169,25 @@ function renderServices(services) {
  * Muestra un modal con la información detallada de un servicio.
  */
 async function showServiceDetailModal(serviceId) {
-    // Limpiar cualquier modal anterior y backdrop residual
-    document.getElementById('serviceDetailModal')?.remove();
+    // Limpiar cualquier modal anterior y backdrop residual de manera más agresiva
+    const existingModal = document.getElementById('serviceDetailModal');
+    if (existingModal) {
+        const modalInstance = bootstrap.Modal.getInstance(existingModal);
+        if (modalInstance) {
+            modalInstance.dispose();
+        }
+        existingModal.remove();
+    }
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
+    // Limpiar la variable global antes de cargar nuevos datos
+    window.currentServiceData = null;
+    
+    console.log('Loading service with ID:', serviceId); // Debug log
     
     try {
         const service = await getServiceById(serviceId);
+        console.log('Loaded service data:', service); // Debug log
         window.currentServiceData = service;
         const modalHtml = `
             <div class="modal fade" id="serviceDetailModal" tabindex="-1">
@@ -177,7 +200,7 @@ async function showServiceDetailModal(serviceId) {
                         <div class="modal-body">
                             <div class="row">
                                 <div class="col-md-4 text-center">
-                                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover; aspect-ratio: 1/1;" alt="${service.provider_name}">
+                                    <img class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover; aspect-ratio: 1/1;" alt="${service.provider_name}" id="modal-provider-avatar">
                                     <h5 class="fw-bold">${service.provider_name}</h5>
                                     <p class="text-muted small">${service.bio || ''}</p>
                                 </div>
@@ -202,8 +225,17 @@ async function showServiceDetailModal(serviceId) {
             </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
+        // Configurar fallback para la imagen del modal después de agregar al DOM
+        const modalImg = document.getElementById('modal-provider-avatar');
+        setupImageFallback(modalImg, service.provider_name, service.personal_picture, 120);
+        
+        // Esperar un poco para asegurar que el DOM se actualice completamente
+        await new Promise(resolve => setTimeout(resolve, 50));
+        
         const serviceModal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
         serviceModal.show();
+        
+        console.log('Modal created and shown for service:', service.name, 'ID:', service.id_service); // Debug log
 
         // Evento para mostrar reviews (ahora en el footer)
         document.getElementById('btn-show-reviews').addEventListener('click', async () => {
@@ -224,6 +256,8 @@ async function showServiceDetailModal(serviceId) {
         // Limpiar backdrop cuando se cierre este modal
         document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function() {
             cleanupModalBackdrops();
+            // Limpiar la variable global para evitar conflictos
+            window.currentServiceData = null;
         });
         
     } catch (error) {
@@ -308,21 +342,8 @@ async function showFavoriteServices() {
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body">
-                        <div class="row g-3">
-                            ${favorites.length === 0 ? '<p class="text-center text-muted">No tienes servicios favoritos.</p>' : favorites.map(service => `
-                                <div class="col-md-6">
-                                    <div class="card h-100">
-                                        <div class="card-body text-center d-flex flex-column">
-                                            <img src="${service.personal_picture || 'default.png'}" alt="${service.provider_name}" class="provider-avatar mb-2">
-                                            <h5 class="card-title fw-bold">${service.name}</h5>
-                                            <p class="card-text text-muted small">Por ${service.provider_name}</p>
-                                            <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
-                                            <h6 class="fw-bold text-primary mt-2">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h6>
-                                            <button class="btn btn-sm btn-outline-primary btn-see-more mt-2" data-service-id="${service.id_service}">Ver Detalles</button>
-                                        </div>
-                                    </div>
-                                </div>
-                            `).join('')}
+                        <div class="row g-3" id="favorites-container">
+                            ${favorites.length === 0 ? '<p class="text-center text-muted">No tienes servicios favoritos.</p>' : ''}
                         </div>
                     </div>
                     <div class="modal-footer border-0">
@@ -332,6 +353,30 @@ async function showFavoriteServices() {
             </div>
         </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    // Agregar las tarjetas de favoritos con fallback de imágenes
+    const favoritesContainer = document.getElementById('favorites-container');
+    favorites.forEach(service => {
+        const cardElement = document.createElement('div');
+        cardElement.className = 'col-md-6';
+        cardElement.innerHTML = `
+            <div class="card h-100">
+                <div class="card-body text-center d-flex flex-column">
+                    <img alt="${service.provider_name}" class="provider-avatar mb-2">
+                    <h5 class="card-title fw-bold">${service.name}</h5>
+                    <p class="card-text text-muted small">Por ${service.provider_name}</p>
+                    <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                    <h6 class="fw-bold text-primary mt-2">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h6>
+                    <button class="btn btn-sm btn-outline-primary btn-see-more mt-2" data-service-id="${service.id_service}">Ver Detalles</button>
+                </div>
+            </div>`;
+        
+        // Configurar fallback para la imagen después de agregar al DOM
+        const img = cardElement.querySelector('.provider-avatar');
+        setupImageFallback(img, service.provider_name, service.personal_picture, 60);
+        
+        favoritesContainer.appendChild(cardElement);
+    });
     
     const favoritesModal = new bootstrap.Modal(document.getElementById('favoritesModal'));
     favoritesModal.show();
@@ -345,7 +390,11 @@ async function showFavoriteServices() {
     document.getElementById('favoritesModal').addEventListener('click', (e) => {
         const seeMoreBtn = e.target.closest('.btn-see-more');
         if (seeMoreBtn) {
+            e.preventDefault(); // Prevenir comportamiento por defecto
+            e.stopPropagation(); // Evitar que el evento se propague al listener global
+            
             const serviceId = seeMoreBtn.dataset.serviceId;
+            console.log('Favorites modal - Service ID from dataset:', serviceId); // Debug log
             
             // Cerrar el modal de favoritos completamente y limpiar el backdrop
             favoritesModal.hide();
@@ -358,6 +407,9 @@ async function showFavoriteServices() {
                 // Restaurar el scroll del body
                 document.body.classList.remove('modal-open');
                 document.body.style.removeProperty('padding-right');
+                
+                // Limpiar datos previos antes de mostrar el nuevo modal
+                window.currentServiceData = null;
                 
                 // Mostrar el modal de detalles del servicio
                 showServiceDetailModal(serviceId);
@@ -467,6 +519,76 @@ function cleanupModalBackdrops() {
     document.body.style.removeProperty('overflow');
 }
 
+/**
+ * Genera un avatar SVG con las iniciales del nombre completo
+ * @param {string} fullName - Nombre completo del proveedor
+ * @param {number} size - Tamaño del avatar en píxeles (por defecto 60)
+ * @returns {string} - URL de datos SVG
+ */
+function generateInitialsAvatar(fullName, size = 60) {
+    // Obtener las iniciales del nombre
+    const initials = fullName
+        .split(' ')
+        .filter(name => name.length > 0)
+        .map(name => name.charAt(0).toUpperCase())
+        .slice(0, 2) // Solo las primeras 2 iniciales
+        .join('');
+    
+    // Colores de fondo aleatorios pero consistentes basados en el nombre
+    const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+    ];
+    
+    // Generar un color consistente basado en el hash del nombre
+    let hash = 0;
+    for (let i = 0; i < fullName.length; i++) {
+        hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorIndex = Math.abs(hash) % colors.length;
+    const backgroundColor = colors[colorIndex];
+    
+    // Crear el SVG
+    const svg = `
+        <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${backgroundColor}"/>
+            <text x="${size/2}" y="${size/2}" font-family="Arial, sans-serif" font-size="${size/3}" font-weight="bold" 
+                  fill="white" text-anchor="middle" dominant-baseline="central">${initials}</text>
+        </svg>
+    `;
+    
+    // Convertir a URL de datos
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+/**
+ * Configura el manejo de imágenes con avatar inmediato y carga en segundo plano
+ * @param {HTMLImageElement} img - Elemento de imagen
+ * @param {string} providerName - Nombre del proveedor
+ * @param {string} originalSrc - URL original de la imagen
+ * @param {number} size - Tamaño del avatar
+ */
+function setupImageFallback(img, providerName, originalSrc, size = 60) {
+    // Mostrar inmediatamente el avatar de iniciales
+    const initialsAvatar = generateInitialsAvatar(providerName, size);
+    img.src = initialsAvatar;
+    
+    // Intentar cargar la imagen real en segundo plano
+    if (originalSrc && originalSrc !== 'null' && originalSrc.trim() !== '') {
+        const realImage = new Image();
+        realImage.onload = function() {
+            // Si la imagen real carga exitosamente, reemplazar el avatar
+            img.src = originalSrc;
+        };
+        realImage.onerror = function() {
+            // Si falla, mantener el avatar de iniciales (ya está configurado)
+            console.log(`Failed to load image for ${providerName}, using initials avatar`);
+        };
+        // Iniciar la carga de la imagen real
+        realImage.src = originalSrc;
+    }
+}
+
 // ===================================================================
 // SECCIÓN 2: LÓGICA DE EVENTOS (MANEJADOR ÚNICO)
 // ===================================================================
@@ -506,6 +628,9 @@ function setupPageEventListeners() {
         }
         else if (seeMoreBtn) {
             const serviceId = seeMoreBtn.dataset.serviceId;
+            console.log('Button clicked - Service ID from dataset:', serviceId); // Debug log
+            // Limpiar datos previos antes de mostrar el nuevo modal
+            window.currentServiceData = null;
             showServiceDetailModal(serviceId);
         }
         else if (contactBtn) {
@@ -530,7 +655,10 @@ function setupPageEventListeners() {
         }
         else if (proposeContractBtn) {
             const service = window.currentServiceData;
-            if (!service) return;
+            if (!service) {
+                alert('Error: No se encontró la información del servicio. Por favor, cierra y vuelve a abrir el modal.');
+                return;
+            }
 
             const hours = prompt(`¿Cuántas horas del servicio "${service.name}" deseas contratar?`, "1");
             
@@ -748,4 +876,40 @@ function setupProfileModal() {
             });
         });
     }
+}
+
+// ===================================================================
+// FUNCIÓN PARA EL BOTÓN DE SCROLL HACIA ARRIBA
+// ===================================================================
+function setupScrollToTopButton() {
+    const scrollToTopBtn = document.getElementById('scroll-to-top');
+    
+    if (!scrollToTopBtn) {
+        console.error('Botón scroll-to-top no encontrado');
+        return;
+    }
+    
+    console.log('Botón de scroll configurado correctamente');
+    
+    // Función simple y directa para scroll
+    scrollToTopBtn.onclick = function() {
+        console.log('¡Click detectado! Iniciando scroll...');
+        
+        // Scroll inmediato para test
+        document.body.scrollTop = 0; // Para Safari
+        document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
+        
+        console.log('Scroll ejecutado');
+    };
+    
+    // Mostrar/ocultar el botón basado en la posición del scroll
+    window.onscroll = function() {
+        if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+            scrollToTopBtn.style.opacity = '1';
+            scrollToTopBtn.style.visibility = 'visible';
+        } else {
+            scrollToTopBtn.style.opacity = '0.7';
+            scrollToTopBtn.style.visibility = 'visible';
+        }
+    };
 }
