@@ -49,6 +49,14 @@ async function fetchWithAuth(endpoint, options = {}) {
     return result;
 }
 
+export const handleUnauthorized = (response) => {
+    if (response.status === 401) {
+        localStorage.removeItem('token');
+        alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
+        window.location.reload();
+        throw new Error('Sesión expirada.');
+    }
+};
 
 // ===================================================================
 // FUNCIONES PÚBLICAS (No necesitan token)
@@ -159,10 +167,34 @@ export const getClientConversations = () => fetchWithAuth('/conversations/client
 
 export const getMyServices = (providerId) => fetchWithAuth(`/services/my/${providerId}`);
 
-export const startConversation = (id_service) => fetchWithAuth('/conversations', {
-    method: 'POST',
-    body: JSON.stringify({ id_service })
-});
+export const startConversation = async (id_service) => {
+    const token = localStorage.getItem('token');
+
+    // 1. PRIMERA BARRERA: Si no hay token, fallamos RÁPIDO aquí.
+    //    No necesitamos ni molestar al backend.
+    if (!token || token === 'null' || token === 'undefined') {
+        throw new Error('Debes iniciar sesión para contactar al proveedor.');
+    }
+
+    // 2. Si hay un token, AHORA SÍ intentamos la petición.
+    const response = await fetch(`${API_URL}/api/conversations`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ id_service })
+    });
+    
+    // El helper 'handleUnauthorized' se encargará si el token está vencido.
+    handleUnauthorized(response);
+
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.error || 'No se pudo iniciar la conversación.');
+    }
+    return result;
+};
 
 export const getMessages = (conversationId) => fetchWithAuth(`/conversations/${conversationId}/messages`);
 
@@ -183,4 +215,22 @@ export const updateService = (serviceId, serviceData) => fetchWithAuth(`/service
 
 export const deleteService = (serviceId) => fetchWithAuth(`/services/${serviceId}`, {
     method: 'DELETE'
+});
+
+export const createContract = async (contractData) => {
+    return fetchWithAuth('/contracts', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify(contractData)
+    });
+
+};
+
+export const getContracts = () => fetchWithAuth('/contracts');
+
+export const respondToContract = (contractId, action) => fetchWithAuth(`/contracts/${contractId}/respond`, {
+    method: 'PATCH',
+    body: JSON.stringify({ action }) // 'accepted' o 'denied'
 });

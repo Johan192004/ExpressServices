@@ -269,3 +269,49 @@ body {
     font-size: 0.7rem;
     opacity: 0.8;
 }
+
+
+#authActionModal .modal-content {
+    border-radius: 15px; /* Bordes más redondeados */
+}
+
+#authActionModal .auth-arrow-icon {
+    font-size: 4rem; /* Ícono grande */
+    color: var(--primary-color);
+    animation: point-to-corner 2s infinite ease-in-out;
+}
+
+/* Animación para que la flecha señale sutilmente a la esquina superior derecha */
+@keyframes point-to-corner {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(5px, -5px) scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+    }
+}
+
+/* ======== FOOTER ======== */
+.footer-section {
+    background-color: var(--dark-gray); /* Aseguramos un color de fondo consistente */
+}
+
+.footer-link, .footer-icon {
+    transition: all 0.3s ease;
+}
+
+.footer-link:hover {
+    color: #fff !important; /* El !important es para sobreescribir Bootstrap */
+    padding-left: 5px;
+}
+
+.footer-icon:hover {
+    color: var(--primary-color) !important;
+    transform: scale(1.2);
+}
