@@ -1,4 +1,3 @@
-// en frontend/js/app.js
 
 function updateNavbar() {
     const token = localStorage.getItem('token');
@@ -21,7 +20,6 @@ function updateNavbar() {
             switchModeBtn.classList.remove('d-none');
             if (isProviderView) {
                 switchModeBtn.textContent = 'Modo Cliente';
-                // ▼▼▼ CORRECCIÓN CLAVE: El enlace debe apuntar a client.html ▼▼▼
                 switchModeBtn.href = '/frontend/views/private/client.html';
             } else {
                 switchModeBtn.textContent = 'Modo Proveedor';

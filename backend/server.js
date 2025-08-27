@@ -22,8 +22,10 @@ const conversationsRoutes = require('./routes/conversationsRoutes.js');
 const passwordResetRoutes = require('./routes/passwordResetRoutes.js');
 const favoritesRoutes = require('./routes/favorites.js');
 const utilsRoutes = require('./routes/utilsRoutes.js');
+const contractsRoutes = require('./routes/contractsRoutes.js');
 const clientsRoutes = require('./routes/clients.js');
 const providerRoutes = require('./routes/providers.js');
+
 
 // --- DEFINICIÓN DE ENDPOINTS ---
 app.use("/api/register", registerRoutes);
@@ -35,6 +37,7 @@ app.use('/api/conversations', conversationsRoutes);
 app.use('/api/password', passwordResetRoutes);
 app.use("/api/favorites", favoritesRoutes);
 app.use('/api/utils', utilsRoutes);
+app.use('/api/contracts', contractsRoutes); 
 app.use('/api/clients', clientsRoutes);
 app.use('/api/providers', providerRoutes);
 

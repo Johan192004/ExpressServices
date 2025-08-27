@@ -3,9 +3,12 @@
 import { startConversation, getServiceById } from '../api/authService.js';
 import { openChatModal } from '../ui/chat.js';
 
+// ===================================================================
+// LÓGICA DE MODALES ESPECÍFICOS
+// ===================================================================
+
 /**
- * Configura los listeners para la selección de rol (cliente/proveedor)
- * y el reseteo del modal de registro.
+ * Configura la lógica interna del modal de registro (selección de rol y reseteo).
  */
 function setupRegisterModal() {
     const roleSelector = document.getElementById('role-selector');
@@ -40,16 +43,27 @@ function setupRegisterModal() {
  */
 async function showServiceDetailModal(serviceId) {
     const detailModalEl = document.getElementById('serviceDetailModal');
-    if (!detailModalEl) return;
+    if (!detailModalEl) {
+        console.error('Error: El molde del modal #serviceDetailModal no se encontró en el HTML.');
+        return;
+    }
     
     const detailModal = new bootstrap.Modal(detailModalEl);
     const modalBody = document.getElementById('detail-modal-body');
+    const modalTitle = document.getElementById('detail-modal-title');
     
+    if (!modalBody || !modalTitle) {
+        console.error('Error: Faltan elementos internos en el modal de detalles.');
+        return;
+    }
+
+    modalTitle.textContent = 'Cargando...';
     modalBody.innerHTML = `<div class="text-center p-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Cargando...</span></div></div>`;
     detailModal.show();
 
     try {
         const service = await getServiceById(serviceId);
+        modalTitle.textContent = service.name;
         modalBody.innerHTML = `
             <div class="row">
                 <div class="col-md-4 text-center">
@@ -58,8 +72,7 @@ async function showServiceDetailModal(serviceId) {
                     <p class="text-muted small">${service.bio || ''}</p>
                 </div>
                 <div class="col-md-8">
-                    <h3>${service.name}</h3>
-                    <p class="text-muted">Categoría: ${service.category_title}</p>
+                    <p class="text-muted">Categoría: ${service.category_title || 'No especificada'}</p>
                     <p>${service.description}</p>
                     <hr>
                     <p><strong>Años de experiencia:</strong> ${service.experience_years}</p>
@@ -76,39 +89,78 @@ async function showServiceDetailModal(serviceId) {
     }
 }
 
+// ===================================================================
+// MANEJADORES DE EVENTOS DE CLIC (HANDLERS)
+// ===================================================================
+
+/** Maneja el clic en el botón "Ver Más" de una tarjeta de servicio. */
+function handleSeeMoreClick(target) {
+    const serviceId = target.dataset.serviceId;
+    showServiceDetailModal(serviceId);
+}
+
+/** Maneja el clic en el botón "Contactar" dentro del modal de detalles. */
+async function handleContactClick(target) {
+    const serviceId = target.dataset.serviceId;
+    
+    const detailModal = bootstrap.Modal.getInstance(document.getElementById('serviceDetailModal'));
+    if (detailModal) detailModal.hide();
+
+    try {
+        const result = await startConversation(serviceId);
+        setTimeout(() => openChatModal(result.id_conversation), 300);
+    } catch (error) {
+        if (error.message.includes('iniciar sesión') || error.message.includes('Sesión expirada')) {
+            const authModal = new bootstrap.Modal(document.getElementById('authActionModal'));
+            authModal.show();
+        } else {
+            alert(`Error: ${error.message}`);
+        }
+    }
+}
+
+// ===================================================================
+// FUNCIÓN PRINCIPAL EXPORTADA
+// ===================================================================
+
 /**
- * Función principal que configura todos los listeners relacionados con modales.
+ * Configura todos los listeners relacionados con modales en la página.
  */
 export function setupModalListeners() {
     // 1. Configura la lógica interna del modal de registro
     setupRegisterModal();
 
-    // 2. Listener general que escucha clics en toda la página
-    document.body.addEventListener('click', async (e) => {
+    // 2. Listener general que delega los clics a las funciones correspondientes
+    document.body.addEventListener('click', (e) => {
+        const seeMoreBtn = e.target.closest('.btn-see-more');
+        const contactBtn = e.target.closest('#modal-contact-btn');
+        
+        // ▼▼▼ LÓGICA AÑADIDA PARA LOS BOTONES DEL MODAL ELEGANTE ▼▼▼
+        const authModalLoginBtn = e.target.closest('#auth-modal-login-btn');
+        const authModalRegisterBtn = e.target.closest('#auth-modal-register-btn');
+
         // Si se hace clic en "Ver Más" en una tarjeta de servicio
-        if (e.target && e.target.classList.contains('btn-see-more')) {
-            const serviceId = e.target.dataset.serviceId;
+        if (seeMoreBtn) {
+            const serviceId = seeMoreBtn.dataset.serviceId;
             showServiceDetailModal(serviceId);
         }
-
         // Si se hace clic en "Contactar" DENTRO del modal de detalles
-        if (e.target && e.target.id === 'modal-contact-btn') {
-            const serviceId = e.target.dataset.serviceId;
-            
-            // Ocultamos el modal de detalles antes de abrir el chat
-            const detailModal = bootstrap.Modal.getInstance(document.getElementById('serviceDetailModal'));
-            if (detailModal) detailModal.hide();
-
-            try {
-                const result = await startConversation(serviceId);
-                // Esperamos un poco para que la animación del modal termine
-                setTimeout(() => openChatModal(result.id_conversation), 300);
-            } catch (error) {
-                alert(`Error: ${error.message}`);
-                if (error.message.includes('iniciar sesión')) {
-                    setTimeout(() => new bootstrap.Modal(document.getElementById('loginModal')).show(), 500);
-                }
-            }
+        else if (contactBtn) {
+            const serviceId = contactBtn.dataset.serviceId;
+            handleContactClick(contactBtn);
+        }
+        // Si se hace clic en "Iniciar Sesión" DENTRO del modal elegante
+        else if (authModalLoginBtn) {
+            const authActionModal = bootstrap.Modal.getInstance(document.getElementById('authActionModal'));
+            if (authActionModal) authActionModal.hide();
+            // Esperamos a que el primer modal se cierre para abrir el segundo
+            setTimeout(() => new bootstrap.Modal(document.getElementById('loginModal')).show(), 300);
+        }
+        // Si se hace clic en "Crear una Cuenta" DENTRO del modal elegante
+        else if (authModalRegisterBtn) {
+            const authActionModal = bootstrap.Modal.getInstance(document.getElementById('authActionModal'));
+            if (authActionModal) authActionModal.hide();
+            setTimeout(() => new bootstrap.Modal(document.getElementById('registerModal')).show(), 300);
         }
     });
 }

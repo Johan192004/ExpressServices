@@ -1,10 +1,8 @@
-// backend/routes/conversationsRoutes.js
 
 const express = require('express');
 const router = express.Router();
 const pool = require('../models/db.js');
 const { protect } = require('../middleware/authMiddleware.js');
-
 
 /**
  * @route   GET /api/conversations/provider
