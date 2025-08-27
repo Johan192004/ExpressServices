@@ -1,6 +1,7 @@
 // frontend/js/provider.js
 
 import { getUserProfile, getMyServices, getCategories, createService, updateService, deleteService, getServiceById, getProviderConversations, respondToContract, getContracts } from './api/authService.js';
+import { getProviderById, putProvider } from './api/provider.js';
 import { openChatModal } from './ui/chat.js';
 
 let myProviderId = null;
@@ -15,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.location.href = '/frontend/index.html';
             return;
         }
+        console.log(userProfile)
         myProviderId = userProfile.id_provider;
         await main();
     } catch (error) {
@@ -252,5 +254,115 @@ function setupPageEventListeners() {
                 denyContractBtn.textContent = 'Rechazar';
             }
         }
+    });
+}
+
+const profileLink = document.getElementById('profile-link');
+if (profileLink) {
+    profileLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        // Eliminar modal anterior si existe
+        let oldModal = document.getElementById('clientProfileModal');
+        if (oldModal) oldModal.remove();
+
+        // Obtener id_client del sessionStorage
+        if (!myProviderId) {
+            alert('No se encontró tu id de proveedor.');
+            return;
+        }
+
+        // Obtener datos del proveedor
+        let providerData;
+        try {
+            providerData = await getProviderById(myProviderId);
+        } catch (err) {
+            alert('No se pudo cargar tu información de perfil.');
+            return;
+        }
+            
+
+
+        // Crear el modal
+        const modalHtml = `
+            <div class="modal fade" id="clientProfileModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form id="client-profile-form">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Mi Perfil</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="profile-full-name" class="form-label">Nombre completo</label>
+                                    <input type="text" class="form-control" id="profile-full-name" name="full_name" value="${providerData[0].full_name || ''}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profile-email" class="form-label">Correo electrónico</label>
+                                    <input type="email" class="form-control" id="profile-email" name="email" value="${providerData[0].email || ''}" readonly disabled>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profile-phone" class="form-label">Teléfono</label>
+                                    <input type="text" class="form-control" id="profile-phone" name="phone_number" value="${providerData[0].phone_number || ''}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profile-personal-picture" class="form-label">Foto de perfil</label>
+                                    <input type="text" class="form-control" id="profile-personal-picture" name="personal_picture" value="${providerData[0].personal_picture || ''}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profile-bio" class="form-label">Biografía</label>
+                                    <textarea class="form-control" id="profile-bio" name="bio" rows="3" required>${providerData[0].bio || ''}</textarea>
+                                </div>
+                                <div class="mb-3 text-end">
+                                    <button type="button" class="btn btn-link p-0" id="btn-reset-password">Cambiar contraseña</button>
+                                </div>
+                                <div id="profile-update-msg" class="text-success small"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Actualizar</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('clientProfileModal'));
+        modal.show();
+
+        // Manejar el submit del formulario
+        document.getElementById('client-profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const full_name = form.full_name.value.trim();
+            const phone_number = form.phone_number.value.trim();
+            const personal_picture = form.personal_picture.value.trim();
+            const bio = form.bio.value.trim();
+            // El email no se puede modificar
+            try {
+                await putProvider(myProviderId, { full_name, phone_number, personal_picture, bio });
+                document.getElementById('profile-update-msg').textContent = 'Perfil actualizado con éxito.';
+                // Cerrar el modal después de 2 segundos
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('clientProfileModal'));
+                    if (modal) modal.hide();
+                }, 2000);
+            } catch (err) {
+                document.getElementById('profile-update-msg').textContent = 'Error al actualizar el perfil.';
+            }
+        });
+
+        // Evento para resetear contraseña
+        document.getElementById('btn-reset-password').addEventListener('click', async () => {
+            const email = providerData[0].email;
+            if (!email) return alert('No se encontró el correo.');
+            try {
+                await import('./api/authService.js').then(mod => mod.requestPasswordReset(email));
+                alert('Se ha enviado un enlace de reseteo de contraseña a tu correo.');
+            } catch (err) {
+                alert('No se pudo enviar el correo de reseteo.');
+            }
+        });
     });
 }

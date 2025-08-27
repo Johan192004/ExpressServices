@@ -1,6 +1,16 @@
+import { getUserProfile } from './api/authService.js';
 import { API_URL } from './api/config.js';
+let myProviderId = null; // El ID de proveedor del usuario logueado
+let myClientId = null; // El ID de cliente del usuario logueado
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async() => {
+    const userProfile = await getUserProfile();
+
+    if (userProfile) {
+        myProviderId = userProfile.id_provider;
+        myClientId = userProfile.id_client;
+    }
+
     const form = document.getElementById('resetPasswordForm');
     const newPasswordInput = document.getElementById('newPassword');
     const confirmPasswordInput = document.getElementById('confirmPassword');
@@ -68,7 +78,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Redirigimos al inicio después de unos segundos
             setTimeout(() => {
-                window.location.href = 'index.html';
+                if (myProviderId) {
+                    window.location.href = 'private/provider.html';
+                } else if (myClientId) {
+                    window.location.href = 'private/client.html';
+                }
             }, 3000);
 
         } catch (error) {

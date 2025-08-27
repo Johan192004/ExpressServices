@@ -1,17 +1,35 @@
-
+import { getClientById, putClient,getUserProfile } from "./api/authService.js";
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
 
-// PUNTO DE ENTRADA PRINCIPAL 
-document.addEventListener('DOMContentLoaded', () => {
-    // Verificamos si el usuario tiene permiso para estar aquí
+// ===================================================================
+// PUNTO DE ENTRADA PRINCIPAL: Se ejecuta cuando la página ha cargado
+// ===================================================================
+let myClientId = null; // El ID de cliente del usuario logueado
+
+document.addEventListener('DOMContentLoaded', async () => {
+    // 1. Verificamos si el usuario tiene permiso para estar aquí
     if (!localStorage.getItem('token')) {
         alert('Debes iniciar sesión para acceder a esta página.');
         window.location.href = '../../index.html';
         return;
     }
+
     
     // Inicia todas las funcionalidades de la página
+
+
+    const userProfile = await getUserProfile();
+    if (!userProfile.id_client) {
+            alert('Acceso denegado. Debes tener un perfil de cliente.');
+            window.location.href = '/frontend/index.html';
+            return;
+    }
+    myClientId = userProfile.id_client;
+    console.log(userProfile)
+
+    // 2. Cargamos todos los componentes dinámicos de la página
+
     loadAndRenderClientConversations();
     loadAndSetupCategories();
     setupPageEventListeners();
@@ -166,5 +184,102 @@ function setupPageEventListeners() {
             const conversationId = conversationLink.dataset.conversationId;
             openChatModal(conversationId);
         }
+    });
+}
+
+
+// MODAL DE PERFIL DE CLIENTE
+const profileLink = document.getElementById('profile-link');
+if (profileLink) {
+    profileLink.addEventListener('click', async (e) => {
+        e.preventDefault();
+        // Eliminar modal anterior si existe
+        let oldModal = document.getElementById('clientProfileModal');
+        if (oldModal) oldModal.remove();
+
+        // Obtener id_client del sessionStorage
+        if (!myClientId) {
+            alert('No se encontró tu id de cliente.');
+            return;
+        }
+
+        // Obtener datos del cliente
+        let clientData;
+        try {
+            clientData = await getClientById(myClientId);
+        } catch (err) {
+            alert('No se pudo cargar tu información de perfil.');
+            return;
+        }
+            
+
+
+        // Crear el modal
+        const modalHtml = `
+            <div class="modal fade" id="clientProfileModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form id="client-profile-form">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Mi Perfil</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="profile-full-name" class="form-label">Nombre completo</label>
+                                    <input type="text" class="form-control" id="profile-full-name" name="full_name" value="${clientData[0].full_name || ''}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="profile-email" class="form-label">Correo electrónico</label>
+                                    <input type="email" class="form-control" id="profile-email" name="email" value="${clientData[0].email || ''}" readonly disabled>
+                                </div>
+                                <div class="mb-3 text-end">
+                                    <button type="button" class="btn btn-link p-0" id="btn-reset-password">Cambiar contraseña</button>
+                                </div>
+                                <div id="profile-update-msg" class="text-success small"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Actualizar</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modal = new bootstrap.Modal(document.getElementById('clientProfileModal'));
+        modal.show();
+
+        // Manejar el submit del formulario
+        document.getElementById('client-profile-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const full_name = form.full_name.value.trim();
+            // El email no se puede modificar
+            try {
+                await putClient(myClientId, { full_name });
+                document.getElementById('profile-update-msg').textContent = 'Perfil actualizado con éxito.';
+                // Cerrar el modal después de 2 segundos
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('clientProfileModal'));
+                    if (modal) modal.hide();
+                }, 2000);
+            } catch (err) {
+                document.getElementById('profile-update-msg').textContent = 'Error al actualizar el perfil.';
+            }
+        });
+
+        // Evento para resetear contraseña
+        document.getElementById('btn-reset-password').addEventListener('click', async () => {
+            const email = clientData[0].email;
+            if (!email) return alert('No se encontró el correo.');
+            try {
+                await import('./api/authService.js').then(mod => mod.requestPasswordReset(email));
+                alert('Se ha enviado un enlace de reseteo de contraseña a tu correo.');
+            } catch (err) {
+                alert('No se pudo enviar el correo de reseteo.');
+            }
+        });
     });
 }
