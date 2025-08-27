@@ -24,6 +24,7 @@ const favoritesRoutes = require('./routes/favorites.js');
 const utilsRoutes = require('./routes/utilsRoutes.js');
 const clientsRoutes = require('./routes/clients.js');
 const providerRoutes = require('./routes/providers.js');
+const reviewsRoutes = require('./routes/reviews.js');
 
 // --- DEFINICIÓN DE ENDPOINTS ---
 app.use("/api/register", registerRoutes);
@@ -37,6 +38,7 @@ app.use("/api/favorites", favoritesRoutes);
 app.use('/api/utils', utilsRoutes);
 app.use('/api/clients', clientsRoutes);
 app.use('/api/providers', providerRoutes);
+app.use('/api/reviews', reviewsRoutes);
 
 // --- INICIO DEL SERVIDOR ---
 app.listen(PORT, () => {

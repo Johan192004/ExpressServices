@@ -90,9 +90,12 @@ function renderMyServices(services) {
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title fw-bold">${service.name}</h5>
                         <p class="card-text small text-muted flex-grow-1">${service.description.substring(0, 100)}...</p>
-                        <div class="card-footer bg-white border-0 d-flex justify-content-end p-0 pt-3">
-                            <button class="btn btn-outline-secondary btn-sm me-2 btn-edit-service" data-service-id="${service.id_service}" data-bs-toggle="modal" data-bs-target="#serviceFormModal">Editar</button>
-                            <button class="btn btn-outline-danger btn-sm btn-delete-service" data-service-id="${service.id_service}">Eliminar</button>
+                        <div class="card-footer bg-white border-0 d-flex justify-content-center p-0 pt-3">
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <button class="btn btn-outline-info btn-show-reviews" data-service-id="${service.id_service}" title="Ver reviews">Reviews</button>
+                                <button class="btn btn-outline-secondary btn-edit-service" data-service-id="${service.id_service}" data-bs-toggle="modal" data-bs-target="#serviceFormModal" title="Editar servicio"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-outline-danger btn-delete-service" data-service-id="${service.id_service}" title="Eliminar servicio"><i class="bi bi-trash"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -114,6 +117,60 @@ async function loadCategoriesIntoSelect() {
 // --- LÓGICA DE EVENTOS Y FORMULARIOS ---
 
 function setupEventListeners() {
+
+    // Evento para mostrar reviews de cada servicio
+    document.getElementById('my-services-container').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-show-reviews');
+        if (btn) {
+            const serviceId = btn.dataset.serviceId;
+            // Eliminar modal anterior de reviews si existe
+            document.getElementById('reviewsModal')?.remove();
+            // Mostrar modal de reviews inmediatamente con 'Cargando...'
+            const reviewsModalHtml = `
+                <div class="modal fade" id="reviewsModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Reseñas del Servicio</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="reviews-modal-body">
+                                <p class='text-muted'>Cargando...</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', reviewsModalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('reviewsModal'));
+            modal.show();
+            // Cargar reviews
+            try {
+                const { getReviwesByServiceId } = await import('./api/reviews.js');
+                const reviews = await getReviwesByServiceId(serviceId);
+                let reviewsHtml = '';
+                if (reviews.length === 0) {
+                    reviewsHtml = '<p class="text-muted">No hay reviews para este servicio.</p>';
+                } else {
+                    reviewsHtml = reviews.map(r => `
+                        <div class="border rounded p-3 mb-3 bg-light">
+                            <div class="d-flex align-items-center mb-2">
+                                <strong class="me-2">${r.full_name || r.reviewer}</strong>
+                                <span class="text-warning">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</span>
+                            </div>
+                            <div>${r.description}</div>
+                        </div>
+                    `).join('');
+                }
+                document.getElementById('reviews-modal-body').innerHTML = reviewsHtml;
+            } catch (err) {
+                document.getElementById('reviews-modal-body').innerHTML = '<p class="text-danger">Ha ocurrido un error al cargar las reviews.</p>';
+            }
+        }
+    });
     const serviceModalEl = document.getElementById('serviceFormModal');
     if (!serviceModalEl) return;
     
