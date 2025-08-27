@@ -641,6 +641,8 @@ function setupPageEventListeners() {
             if (detailModal) detailModal.hide();
             try {
                 const result = await startConversation(serviceId);
+                // Actualizar la sección de mensajes después de iniciar la conversación
+                await loadAndRenderClientConversations();
                 setTimeout(() => openChatModal(result.id_conversation), 300);
             } catch (error) {
                  if (error.message.includes('iniciar sesión') || error.message.includes('Sesión expirada')) {
