@@ -6,6 +6,10 @@ async function showFavoriteServices() {
         alert('No se encontró tu id de cliente.');
         return;
     }
+    
+    // Recargar favoritos actuales
+    await loadCurrentFavorites();
+    
     let favorites = [];
     try {
         favorites = await getFavoritesById(myClientId);
@@ -36,6 +40,7 @@ async function showFavoriteServices() {
                                             <p class="card-text text-muted small">Por ${service.provider_name}</p>
                                             <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
                                             <h6 class="fw-bold text-primary mt-2">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h6>
+                                            <button class="btn btn-sm btn-outline-primary btn-see-more mt-2" data-service-id="${service.id_service}">Ver Detalles</button>
                                         </div>
                                     </div>
                                 </div>
@@ -49,7 +54,41 @@ async function showFavoriteServices() {
             </div>
         </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
-    new bootstrap.Modal(document.getElementById('favoritesModal')).show();
+    
+    const favoritesModal = new bootstrap.Modal(document.getElementById('favoritesModal'));
+    favoritesModal.show();
+    
+    // Limpiar backdrop cuando se cierre el modal de favoritos normalmente
+    document.getElementById('favoritesModal').addEventListener('hidden.bs.modal', function() {
+        cleanupModalBackdrops();
+    });
+    
+    // Agregar event listener para los botones "Ver Detalles" dentro del modal de favoritos
+    document.getElementById('favoritesModal').addEventListener('click', (e) => {
+        const seeMoreBtn = e.target.closest('.btn-see-more');
+        if (seeMoreBtn) {
+            const serviceId = seeMoreBtn.dataset.serviceId;
+            
+            // Cerrar el modal de favoritos completamente y limpiar el backdrop
+            favoritesModal.hide();
+            
+            // Asegurar que el backdrop se elimine completamente
+            favoritesModal._element.addEventListener('hidden.bs.modal', function handleModalHidden() {
+                // Remover cualquier backdrop que pueda quedar
+                document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                
+                // Restaurar el scroll del body
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                
+                // Mostrar el modal de detalles del servicio
+                showServiceDetailModal(serviceId);
+                
+                // Remover este event listener para evitar múltiples ejecuciones
+                this.removeEventListener('hidden.bs.modal', handleModalHidden);
+            });
+        }
+    });
 }
 // Evento para mostrar favoritos
 document.addEventListener('DOMContentLoaded', () => {
@@ -61,12 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
 import { getClientById, putClient,getUserProfile } from "./api/authService.js";
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
-import { getFavoritesById } from "./api/favorites.js";
+import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
 
 // ===================================================================
 // PUNTO DE ENTRADA PRINCIPAL: Se ejecuta cuando la página ha cargado
 // ===================================================================
 let myClientId = null; // El ID de cliente del usuario logueado
+let currentFavorites = []; // Array para almacenar los IDs de servicios favoritos
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificamos si el usuario tiene permiso para estar aquí
@@ -85,11 +125,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     myClientId = userProfile.id_client;
     console.log(userProfile)
 
-    // 2. Cargamos todos los componentes dinámicos de la página
+    // 2. Cargamos los favoritos del usuario
+    await loadCurrentFavorites();
+
+    // 3. Cargamos todos los componentes dinámicos de la página
     loadAndRenderClientConversations();
     loadAndSetupCategories();
     
-    // 3. Activamos todos los "escuchadores" de eventos
+    // 4. Activamos todos los "escuchadores" de eventos
     setupPageEventListeners();
 });
 
@@ -98,6 +141,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 // SECCIÓN 1: LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS
 // (Funciones que piden datos a la API y los "pintan" en el HTML)
 // ===================================================================
+
+/**
+ * Carga los favoritos actuales del usuario desde la API.
+ */
+async function loadCurrentFavorites() {
+    if (!myClientId) return;
+    try {
+        const favorites = await getFavoritesById(myClientId);
+        currentFavorites = favorites.map(fav => fav.id_service);
+    } catch (error) {
+        console.error('Error al cargar favoritos:', error);
+        currentFavorites = [];
+    }
+}
 
 /**
  * Pide las conversaciones del cliente a la API y las muestra en la bandeja de entrada.
@@ -169,10 +226,9 @@ function renderServices(services) {
         servicesContainer.innerHTML = '<p class="text-center text-muted col-12">No se encontraron servicios.</p>';
         return;
     }
-    // Obtener favoritos actuales
-    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+    
     services.forEach(service => {
-        const isFavorite = favorites.includes(service.id_service);
+        const isFavorite = currentFavorites.includes(service.id_service);
         servicesContainer.innerHTML += `
             <div class="col">
                 <div class="card service-card h-100">
@@ -181,7 +237,7 @@ function renderServices(services) {
                         <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
                         <p class="card-text text-muted small">Por ${service.provider_name}</p>
                         <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
-                        <button class="btn btn-link p-0 favorite-btn" data-service-id="${service.id_service}" title="Agregar a favoritos">
+                        <button class="btn btn-link p-0 favorite-btn" data-service-id="${service.id_service}" title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
                             <i class="bi ${isFavorite ? 'bi-star-fill text-warning' : 'bi-star'}" style="font-size: 1.5rem;"></i>
                         </button>
                         <hr>
@@ -193,11 +249,58 @@ function renderServices(services) {
 }
 
 /**
+ * Maneja el clic en el botón de favoritos para agregar o quitar de favoritos.
+ * @param {string} serviceId - El ID del servicio.
+ */
+async function toggleFavorite(serviceId) {
+    if (!myClientId) {
+        alert('Debes iniciar sesión para agregar favoritos.');
+        return;
+    }
+
+    const isFavorite = currentFavorites.includes(parseInt(serviceId));
+    
+    try {
+        if (isFavorite) {
+            // Quitar de favoritos
+            await deleteFavorite({ id_client: myClientId, id_service: serviceId });
+            currentFavorites = currentFavorites.filter(id => id !== parseInt(serviceId));
+        } else {
+            // Agregar a favoritos
+            await postFavorite({ id_client: myClientId, id_service: serviceId });
+            currentFavorites.push(parseInt(serviceId));
+        }
+        
+        // Actualizar la estrella en la interfaz
+        const favoriteBtn = document.querySelector(`[data-service-id="${serviceId}"].favorite-btn`);
+        if (favoriteBtn) {
+            const icon = favoriteBtn.querySelector('i');
+            const newIsFavorite = currentFavorites.includes(parseInt(serviceId));
+            
+            if (newIsFavorite) {
+                icon.className = 'bi bi-star-fill text-warning';
+                favoriteBtn.title = 'Quitar de favoritos';
+            } else {
+                icon.className = 'bi bi-star';
+                favoriteBtn.title = 'Agregar a favoritos';
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error al actualizar favoritos:', error);
+        alert('Error al actualizar favoritos. Inténtalo de nuevo.');
+    }
+}
+
+/**
  * Muestra un modal con la información detallada de un servicio específico.
  * @param {string} serviceId - El ID del servicio a mostrar.
  */
 async function showServiceDetailModal(serviceId) {
+    // Limpiar cualquier modal anterior y backdrop residual
     document.getElementById('serviceDetailModal')?.remove();
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
     try {
         const service = await getServiceById(serviceId);
         const modalHtml = `
@@ -232,11 +335,41 @@ async function showServiceDetailModal(serviceId) {
                 </div>
             </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        new bootstrap.Modal(document.getElementById('serviceDetailModal')).show();
+        
+        const serviceModal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
+        serviceModal.show();
+        
+        // Limpiar backdrop cuando se cierre este modal
+        document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function() {
+            document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('padding-right');
+        });
+        
     } catch (error) {
         alert('Error al cargar detalles del servicio.');
     }
 }
+
+/**
+ * Función utilitaria para limpiar backdrops residuales de Bootstrap modals
+ */
+function cleanupModalBackdrops() {
+    // Remover todos los backdrops
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
+    // Restaurar el estado del body
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('overflow');
+}
+
+// Agregar limpieza global cuando se presione ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        setTimeout(cleanupModalBackdrops, 100);
+    }
+});
 
 
 // ===================================================================
@@ -251,6 +384,7 @@ function setupPageEventListeners() {
         const seeMoreBtn = target.closest('.btn-see-more');
         const contactBtn = target.closest('#modal-contact-btn');
         const conversationLink = target.closest('.conversation-item');
+        const favoriteBtn = target.closest('.favorite-btn');
 
         if (categoryCard) {
             const categoryId = categoryCard.dataset.idCategory;
@@ -261,6 +395,11 @@ function setupPageEventListeners() {
                 const services = await getServices({ id_category: categoryId });
                 renderServices(services);
             } catch (error) { console.error("Error al cargar servicios:", error); }
+        }
+        else if (favoriteBtn) {
+            e.preventDefault();
+            const serviceId = favoriteBtn.dataset.serviceId;
+            await toggleFavorite(serviceId);
         }
         else if (seeMoreBtn) {
             const serviceId = seeMoreBtn.dataset.serviceId;
