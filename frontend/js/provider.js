@@ -166,8 +166,8 @@ function setupEventListeners() {
             modal.show();
             // Cargar reviews
             try {
-                const { getReviwesByServiceId } = await import('./api/reviews.js');
-                const reviews = await getReviwesByServiceId(serviceId);
+                const { getReviewsByServiceId } = await import('./api/reviews.js');
+                const reviews = await getReviewsByServiceId(serviceId);
                 let reviewsHtml = '';
                 if (reviews.length === 0) {
                     reviewsHtml = '<p class="text-muted">No hay reviews para este servicio.</p>';
@@ -365,9 +365,15 @@ function setupEventListeners() {
             const conversationId = conversationLink.dataset.conversationId;
             openChatModal(conversationId);
         }
+    });
+
+    // Event listener separado para los contratos
+    document.getElementById('contracts-container').addEventListener('click', async (e) => {
+        const acceptContractBtn = e.target.closest('.btn-accept-contract');
+        const denyContractBtn = e.target.closest('.btn-deny-contract');
 
         // Clic en "Aceptar" contrato
-        else if (acceptContractBtn) {
+        if (acceptContractBtn) {
             const contractId = acceptContractBtn.dataset.id;
             acceptContractBtn.disabled = true;
             acceptContractBtn.textContent = '...';
