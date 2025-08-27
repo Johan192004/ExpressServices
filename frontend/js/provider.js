@@ -93,7 +93,7 @@ function renderMyServices(services) {
                         <div class="card-footer bg-white border-0 d-flex justify-content-center p-0 pt-3">
                             <div class="btn-group btn-group-sm w-100" role="group">
                                 <button class="btn btn-outline-info btn-show-reviews" data-service-id="${service.id_service}" title="Ver reviews">Reviews</button>
-                                <button class="btn btn-outline-secondary btn-edit-service" data-service-id="${service.id_service}" data-bs-toggle="modal" data-bs-target="#serviceFormModal" title="Editar servicio"><i class="bi bi-pencil"></i></button>
+                                <button type="button" class="btn btn-outline-secondary btn-edit-service" data-service-id="${service.id_service}" title="Editar servicio"><i class="bi bi-pencil"></i></button>
                                 <button class="btn btn-outline-danger btn-delete-service" data-service-id="${service.id_service}" title="Eliminar servicio"><i class="bi bi-trash"></i></button>
                             </div>
                         </div>
@@ -178,39 +178,151 @@ function setupEventListeners() {
     const serviceForm = document.getElementById('serviceForm');
     const modalTitle = document.getElementById('service-modal-title');
 
+
+    // Lógica para crear servicio (modal original)
     document.getElementById('btn-open-create-modal').addEventListener('click', () => {
         modalTitle.textContent = 'Publicar Nuevo Servicio';
         serviceForm.reset();
         serviceForm.querySelector('input[name="id_service"]').value = '';
+        serviceModal.show();
     });
+
+    // Lógica para editar servicio (modal independiente, singleton)
+    // create or get singleton edit modal
+    function createEditModalOnce() {
+        if (document.getElementById('editServiceModal')) return;
+        const html = `
+            <div class="modal fade" id="editServiceModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form id="edit-service-form">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Editar Servicio</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" name="id_service" value="">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" name="name" value="" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" name="description" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Precio por hora</label>
+                                    <input type="number" class="form-control" name="hour_price" value="" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Años de experiencia</label>
+                                    <input type="number" class="form-control" name="experience_years" value="" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Categoría</label>
+                                    <select class="form-select" name="id_category" id="edit-category-select" required></select>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Actualizar</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        const editForm = document.getElementById('edit-service-form');
+        // attach submit handler once
+        editForm.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const formData = new FormData(ev.target);
+            const data = Object.fromEntries(formData.entries());
+            const id = data.id_service;
+            try {
+                await updateService(id, data);
+                alert('Servicio actualizado con éxito.');
+                const modalEl = document.getElementById('editServiceModal');
+                const bs = bootstrap.Modal.getInstance(modalEl);
+                if (bs) bs.hide();
+                loadMyServices();
+            } catch (err) {
+                alert('Error al actualizar el servicio.');
+            }
+        });
+        // remove from DOM on hide to keep clean state
+        document.getElementById('editServiceModal').addEventListener('hidden.bs.modal', (ev) => {
+            ev.target.remove();
+        }, { once: true });
+    }
 
     document.getElementById('my-services-container').addEventListener('click', async (e) => {
-        if (e.target.classList.contains('btn-edit-service')) {
-            const serviceId = e.target.dataset.serviceId;
-            try {
-                const service = await getServiceById(serviceId);
-                modalTitle.textContent = 'Editar Servicio';
-                serviceForm.querySelector('input[name="id_service"]').value = service.id_service;
-                serviceForm.querySelector('input[name="name"]').value = service.name;
-                serviceForm.querySelector('textarea[name="description"]').value = service.description;
-                serviceForm.querySelector('input[name="hour_price"]').value = service.hour_price;
-                serviceForm.querySelector('input[name="experience_years"]').value = service.experience_years;
-                serviceForm.querySelector('select[name="id_category"]').value = service.id_category;
-            } catch (error) { alert('No se pudo cargar la información del servicio.'); }
-        }
-        if (e.target.classList.contains('btn-delete-service')) {
-            const serviceId = e.target.dataset.serviceId;
-            if(confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
-                try {
-                    await deleteService(serviceId);
-                    alert('Servicio eliminado.');
-                    loadMyServices();
-                } catch(error) { alert(`Error al eliminar: ${error.message}`); }
-            }
+        const btn = e.target.closest('.btn-edit-service');
+        if (!btn) return;
+        const serviceId = btn.dataset.serviceId;
+        // show lightweight overlay
+        const existingOverlay = document.getElementById('loadingServiceOverlay');
+        if (existingOverlay) existingOverlay.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'loadingServiceOverlay';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.background = 'rgba(0,0,0,0.4)';
+        overlay.style.zIndex = '1080';
+        overlay.innerHTML = `
+            <div class="text-center p-3 bg-white rounded shadow">
+                <div class="spinner-border text-primary mb-2" role="status"><span class="visually-hidden">Loading...</span></div>
+                <div>Cargando información del servicio...</div>
+            </div>`;
+        document.body.appendChild(overlay);
+        try {
+            const service = await getServiceById(serviceId);
+            document.getElementById('loadingServiceOverlay')?.remove();
+            // ensure singleton modal exists
+            createEditModalOnce();
+            // populate fields
+            const modalEl = document.getElementById('editServiceModal');
+            const form = modalEl.querySelector('#edit-service-form');
+            form.id_service.value = service.id_service;
+            form.name.value = service.name;
+            form.description.value = service.description;
+            form.hour_price.value = service.hour_price;
+            form.experience_years.value = service.experience_years;
+            // populate categories into edit select
+            const editSelect = document.getElementById('edit-category-select');
+            editSelect.innerHTML = '';
+            Array.from(document.getElementById('categorySelect').options).forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value;
+                o.textContent = opt.text;
+                if (opt.value == service.id_category) o.selected = true;
+                editSelect.appendChild(o);
+            });
+            // show modal
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+        } catch (err) {
+            document.getElementById('loadingServiceOverlay')?.remove();
+            alert('No se pudo cargar la información del servicio.');
         }
     });
 
-    serviceForm.addEventListener('submit', async (e) => {
+    // Listener separado para eliminar servicios
+    document.getElementById('my-services-container').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-delete-service');
+        if (!btn) return;
+        const serviceId = btn.dataset.serviceId;
+        if (confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
+            try {
+                await deleteService(serviceId);
+                alert('Servicio eliminado.');
+                loadMyServices();
+            } catch (error) { alert(`Error al eliminar: ${error.message}`); }
+        }
+    });    serviceForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(serviceForm);
         const data = Object.fromEntries(formData.entries());
