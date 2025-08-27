@@ -1,36 +1,25 @@
-// frontend/js/client.js
 
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
 
-// ===================================================================
-// PUNTO DE ENTRADA PRINCIPAL: Se ejecuta cuando la página ha cargado
-// ===================================================================
+// PUNTO DE ENTRADA PRINCIPAL 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Verificamos si el usuario tiene permiso para estar aquí
+    // Verificamos si el usuario tiene permiso para estar aquí
     if (!localStorage.getItem('token')) {
         alert('Debes iniciar sesión para acceder a esta página.');
         window.location.href = '../../index.html';
         return;
     }
     
-    // 2. Cargamos todos los componentes dinámicos de la página
+    // Inicia todas las funcionalidades de la página
     loadAndRenderClientConversations();
     loadAndSetupCategories();
-    
-    // 3. Activamos todos los "escuchadores" de eventos
     setupPageEventListeners();
 });
 
 
-// ===================================================================
-// SECCIÓN 1: LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS
-// (Funciones que piden datos a la API y los "pintan" en el HTML)
-// ===================================================================
+// LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS 
 
-/**
- * Pide las conversaciones del cliente a la API y las muestra en la bandeja de entrada.
- */
 async function loadAndRenderClientConversations() {
     const container = document.getElementById('client-conversations-container');
     if (!container) return;
@@ -53,18 +42,15 @@ async function loadAndRenderClientConversations() {
                 </a>`;
         });
     } catch (error) {
+        console.error("Error al cargar conversaciones:", error);
         container.innerHTML = '<p class="text-danger">Error al cargar tus mensajes.</p>';
     }
 }
 
-/**
- * Pide las categorías a la API, las traduce y las muestra en la página.
- */
 async function loadAndSetupCategories() {
     const container = document.getElementById('category-container');
     if (!container) return;
     const categoryTranslationMap = { 'Plumbing': 'Plomería', 'Electricity': 'Electricidad', 'Carpentry': 'Carpintería', 'Cleaning': 'Construcción', 'Construction & Remodeling': 'Construcción & Remodelación'};
-
     try {
         const categories = await getCategories();
         container.innerHTML = '';
@@ -82,14 +68,11 @@ async function loadAndSetupCategories() {
                 </div>`;
         });
     } catch (error) {
+        console.error("Error al cargar categorías:", error);
         container.innerHTML = '<p class="text-danger small">No se pudieron cargar las categorías.</p>';
     }
 }
 
-/**
- * "Pinta" una lista de servicios en su contenedor correspondiente.
- * @param {Array} services - Un array de objetos de servicio.
- */
 function renderServices(services) {
     const servicesContainer = document.getElementById("servicio-container");
     if (!servicesContainer) return;
@@ -115,36 +98,20 @@ function renderServices(services) {
     });
 }
 
-/**
- * Muestra un modal con la información detallada de un servicio específico.
- * @param {string} serviceId - El ID del servicio a mostrar.
- */
 async function showServiceDetailModal(serviceId) {
     document.getElementById('serviceDetailModal')?.remove();
     try {
         const service = await getServiceById(serviceId);
+        window.currentServiceData = service;
         const modalHtml = `
             <div class="modal fade" id="serviceDetailModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered modal-lg">
                     <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title fw-bold">${service.name}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
+                        <div class="modal-header"><h5 class="modal-title fw-bold">${service.name}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                         <div class="modal-body">
                             <div class="row">
-                                <div class="col-md-4 text-center">
-                                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}">
-                                    <h5 class="fw-bold">${service.provider_name}</h5>
-                                    <p class="text-muted small">${service.bio || ''}</p>
-                                </div>
-                                <div class="col-md-8">
-                                    <p class="text-muted">Categoría: ${service.category_title || 'No especificada'}</p>
-                                    <p>${service.description}</p>
-                                    <hr>
-                                    <p><strong>Años de experiencia:</strong> ${service.experience_years}</p>
-                                    <h4 class="fw-bold text-primary">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h4>
-                                </div>
+                                <div class="col-md-4 text-center"><img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}"><h5 class="fw-bold">${service.provider_name}</h5><p class="text-muted small">${service.bio || ''}</p></div>
+                                <div class="col-md-8"><p class="text-muted">Categoría: ${service.category_title || 'No especificada'}</p><p>${service.description}</p><hr><p><strong>Años de experiencia:</strong> ${service.experience_years}</p><h4 class="fw-bold text-primary">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h4></div>
                             </div>
                         </div>
                         <div class="modal-footer border-0">
@@ -162,18 +129,13 @@ async function showServiceDetailModal(serviceId) {
 }
 
 
-// ===================================================================
-// SECCIÓN 2: LÓGICA DE EVENTOS
-// (Una única función que maneja todos los clics de la página)
-// ===================================================================
-
+// LÓGICA DE EVENTOS 
 function setupPageEventListeners() {
     document.body.addEventListener('click', async (e) => {
-        const target = e.target;
-        const categoryCard = target.closest('.category-card');
-        const seeMoreBtn = target.closest('.btn-see-more');
-        const contactBtn = target.closest('#modal-contact-btn');
-        const conversationLink = target.closest('.conversation-item');
+        const categoryCard = e.target.closest('.category-card');
+        const seeMoreBtn = e.target.closest('.btn-see-more');
+        const contactBtn = e.target.closest('#modal-contact-btn');
+        const conversationLink = e.target.closest('.conversation-item');
 
         if (categoryCard) {
             const categoryId = categoryCard.dataset.idCategory;
@@ -181,6 +143,7 @@ function setupPageEventListeners() {
             const servicesTitle = document.getElementById('h2Services');
             if (servicesTitle) servicesTitle.textContent = `Servicios de ${categoryName}`;
             try {
+                // 2. USAMOS la función correcta de authService.js
                 const services = await getServices({ id_category: categoryId });
                 renderServices(services);
             } catch (error) { console.error("Error al cargar servicios:", error); }
