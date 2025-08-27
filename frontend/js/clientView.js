@@ -177,7 +177,7 @@ async function showServiceDetailModal(serviceId) {
                         <div class="modal-body">
                             <div class="row">
                                 <div class="col-md-4 text-center">
-                                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}">
+                                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover; aspect-ratio: 1/1;" alt="${service.provider_name}">
                                     <h5 class="fw-bold">${service.provider_name}</h5>
                                     <p class="text-muted small">${service.bio || ''}</p>
                                 </div>
