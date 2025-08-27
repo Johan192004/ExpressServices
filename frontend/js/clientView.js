@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadAndRenderClientContracts();
     setupFavoritesButton();
     setupProfileModal();
+    setupScrollToTopButton(); // Configurar botón de scroll
 });
 
 
@@ -875,4 +876,40 @@ function setupProfileModal() {
             });
         });
     }
+}
+
+// ===================================================================
+// FUNCIÓN PARA EL BOTÓN DE SCROLL HACIA ARRIBA
+// ===================================================================
+function setupScrollToTopButton() {
+    const scrollToTopBtn = document.getElementById('scroll-to-top');
+    
+    if (!scrollToTopBtn) {
+        console.error('Botón scroll-to-top no encontrado');
+        return;
+    }
+    
+    console.log('Botón de scroll configurado correctamente');
+    
+    // Función simple y directa para scroll
+    scrollToTopBtn.onclick = function() {
+        console.log('¡Click detectado! Iniciando scroll...');
+        
+        // Scroll inmediato para test
+        document.body.scrollTop = 0; // Para Safari
+        document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
+        
+        console.log('Scroll ejecutado');
+    };
+    
+    // Mostrar/ocultar el botón basado en la posición del scroll
+    window.onscroll = function() {
+        if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+            scrollToTopBtn.style.opacity = '1';
+            scrollToTopBtn.style.visibility = 'visible';
+        } else {
+            scrollToTopBtn.style.opacity = '0.7';
+            scrollToTopBtn.style.visibility = 'visible';
+        }
+    };
 }

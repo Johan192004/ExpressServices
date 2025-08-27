@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel de Proveedor - Servicios Express</title>
+    <title>Panel de Proveedor - Express Services</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -14,21 +14,17 @@
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold text-primary" href="/frontend/index.html">
-                <i class="bi bi-lightning-charge-fill"></i> Servicios Express
+                <i class="bi bi-lightning-charge-fill"></i> Express Services
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item"><a class="nav-link" href="/frontend/index.html">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="#">Buscar Servicios</a></li>
-                </ul>
-                <div id="guest-buttons" class="d-flex ms-lg-3">
+                <div id="guest-buttons" class="d-flex ms-auto">
                     <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">Ingresar</button>
                     <button class="btn btn-primary btn-glow" data-bs-toggle="modal" data-bs-target="#registerModal">Registrarse</button>
                 </div>
-                <div id="user-buttons" class="d-none d-flex align-items-center ms-lg-3">
+                <div id="user-buttons" class="d-none d-flex align-items-center ms-auto">
                     <a href="#" class="btn btn-outline-primary me-3 d-none" id="switch-mode-btn"></a>
                     <a href="#" class="nav-link fw-bold me-3 d-flex align-items-center" id="profile-link"><i class="bi bi-person-circle me-1"></i> Mi Perfil</a>
                     <button class="btn btn-danger btn-sm" id="logout-btn"><i class="bi bi-box-arrow-right"></i></button>
@@ -38,30 +34,33 @@
     </nav>
 
     <main class="container" style="padding-top: 100px;">
-        <div class="row">
+        <!-- Primera fila: Mis Mensajes y Mis Servicios -->
+        <div class="row mb-5">
             <div class="col-lg-4">
                 <h2 class="fw-bold mb-3">Mis Mensajes</h2>
                 <div id="conversations-container" class="list-group">
-                    </div>
+                </div>
             </div>
-
-        <section class="mt-5">
-            <h2 class="fw-bold border-bottom pb-2 mb-3">Solicitudes de Contrato</h2>
-            <div id="contracts-container">
-            </div>
-        </section>
-
-         <div class="col-lg-8">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h2 class="fw-bold">Mis Servicios</h2>
+            <div class="col-lg-8">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="fw-bold">Mis Servicios</h2>
                     <button class="btn btn-primary btn-glow" data-bs-toggle="modal" data-bs-target="#serviceFormModal" id="btn-open-create-modal">
                         <i class="bi bi-plus-circle-fill me-2"></i>Publicar Servicio
                     </button>
                 </div>
                 <div id="my-services-container" class="row">
-                    </div>
+                </div>
             </div>
         </div>
+
+        <!-- Segunda fila: Solicitudes de Contrato (ancho completo) -->
+        <section class="row">
+            <div class="col-12">
+                <h2 class="fw-bold border-bottom pb-2 mb-3">Solicitudes de Contrato</h2>
+                <div id="contracts-container">
+                </div>
+            </div>
+        </section>
     </main>
 
     <div class="modal fade" id="serviceFormModal" tabindex="-1">
@@ -86,6 +85,11 @@
         </div>
       </div>
     </div>
+    
+    <!-- Botón de scroll hacia arriba -->
+    <button id="scroll-to-top" class="btn btn-primary position-fixed d-flex align-items-center justify-content-center" style="bottom: 20px; right: 20px; border-radius: 50%; width: 55px; height: 55px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,123,255,0.4); transition: all 0.3s ease; opacity: 1; visibility: visible;">
+        <i class="bi bi-arrow-up" style="font-size: 1.4rem; font-weight: bold;"></i>
+    </button>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../js/app.js" type="module"></script>
