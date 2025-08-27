@@ -1,6 +1,67 @@
+/**
+ * Abre un modal para visualizar los servicios favoritos del cliente.
+ */
+async function showFavoriteServices() {
+    if (!myClientId) {
+        alert('No se encontró tu id de cliente.');
+        return;
+    }
+    let favorites = [];
+    try {
+        favorites = await getFavoritesById(myClientId);
+    } catch (err) {
+        alert('No se pudieron cargar tus favoritos.');
+        return;
+    }
+    // Eliminar modal anterior si existe
+    let oldModal = document.getElementById('favoritesModal');
+    if (oldModal) oldModal.remove();
+
+    let modalHtml = `
+        <div class="modal fade" id="favoritesModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Mis Favoritos</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            ${favorites.length === 0 ? '<p class="text-center text-muted">No tienes servicios favoritos.</p>' : favorites.map(service => `
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center d-flex flex-column">
+                                            <img src="${service.personal_picture || 'default.png'}" alt="${service.provider_name}" class="provider-avatar mb-2">
+                                            <h5 class="card-title fw-bold">${service.name}</h5>
+                                            <p class="card-text text-muted small">Por ${service.provider_name}</p>
+                                            <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                                            <h6 class="fw-bold text-primary mt-2">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h6>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    new bootstrap.Modal(document.getElementById('favoritesModal')).show();
+}
+// Evento para mostrar favoritos
+document.addEventListener('DOMContentLoaded', () => {
+    const favBtn = document.getElementById('show-favorites-btn');
+    if (favBtn) {
+        favBtn.addEventListener('click', showFavoriteServices);
+    }
+});
 import { getClientById, putClient,getUserProfile } from "./api/authService.js";
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
+import { getFavoritesById } from "./api/favorites.js";
 
 // ===================================================================
 // PUNTO DE ENTRADA PRINCIPAL: Se ejecuta cuando la página ha cargado
@@ -108,7 +169,10 @@ function renderServices(services) {
         servicesContainer.innerHTML = '<p class="text-center text-muted col-12">No se encontraron servicios.</p>';
         return;
     }
+    // Obtener favoritos actuales
+    const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
     services.forEach(service => {
+        const isFavorite = favorites.includes(service.id_service);
         servicesContainer.innerHTML += `
             <div class="col">
                 <div class="card service-card h-100">
@@ -117,6 +181,9 @@ function renderServices(services) {
                         <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
                         <p class="card-text text-muted small">Por ${service.provider_name}</p>
                         <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                        <button class="btn btn-link p-0 favorite-btn" data-service-id="${service.id_service}" title="Agregar a favoritos">
+                            <i class="bi ${isFavorite ? 'bi-star-fill text-warning' : 'bi-star'}" style="font-size: 1.5rem;"></i>
+                        </button>
                         <hr>
                         <button class="btn btn-sm btn-outline-primary btn-see-more mt-auto" data-service-id="${service.id_service}">Ver Detalles</button>
                     </div>
