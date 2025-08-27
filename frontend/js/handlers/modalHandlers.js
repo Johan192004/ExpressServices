@@ -134,8 +134,6 @@ export function setupModalListeners() {
     document.body.addEventListener('click', (e) => {
         const seeMoreBtn = e.target.closest('.btn-see-more');
         const contactBtn = e.target.closest('#modal-contact-btn');
-        
-        // ▼▼▼ LÓGICA AÑADIDA PARA LOS BOTONES DEL MODAL ELEGANTE ▼▼▼
         const authModalLoginBtn = e.target.closest('#auth-modal-login-btn');
         const authModalRegisterBtn = e.target.closest('#auth-modal-register-btn');
 

@@ -1,7 +1,7 @@
 // frontend/js/clientView.js
 
 import { getClientById, putClient, getUserProfile } from "./api/authService.js";
-import { getServices, getCategories, getClientConversations, startConversation, getServiceById, createContract, getContracts } from './api/authService.js';
+import { getServices, getCategories, getClientConversations, startConversation, getServiceById, createContract, getContracts, completeContract, deleteContract } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
 import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
 import { getReviewsByServiceId } from "./api/reviews.js";
@@ -424,7 +424,7 @@ async function showFavoriteServices() {
 /**
  * Muestra un modal con las reviews de un servicio específico.
  */
-async function showReviewsModal(serviceId, originalServiceId) {
+async function showReviewsModal(serviceId) {
     console.log(serviceId)
     // Eliminar modal anterior si existe
     let oldModal = document.getElementById('reviewsModal');
@@ -604,6 +604,8 @@ function setupPageEventListeners() {
         const proposeContractBtn = target.closest('#modal-propose-contract-btn');
         const confirmContractBtn = target.closest('#confirm-contract-btn');
         const favoriteBtn = target.closest('.favorite-btn');
+        const deleteContractBtn = target.closest('.btn-delete-contract');
+        const completeContractBtn = target.closest('.btn-complete-contract');
 
         // --- Lógica para cada tipo de clic ---
 
@@ -711,6 +713,32 @@ function setupPageEventListeners() {
                 confirmContractBtn.innerHTML = 'Confirmar y Enviar Oferta';
             }
         }
+                else if (deleteContractBtn) {
+            const contractId = deleteContractBtn.dataset.contractId;
+            const confirmed = confirm('¿Estás seguro de que deseas eliminar este contrato de tu historial?');
+            if (confirmed) {
+                try {
+                    await deleteContract(contractId);
+                    alert('Contrato eliminado con éxito.');
+                    loadAndRenderClientContracts(); // Recargamos la lista
+                } catch (error) {
+                    alert(`Error al eliminar: ${error.message}`);
+                }
+            }
+        }
+        else if (completeContractBtn) {
+            const contractId = completeContractBtn.dataset.contractId;
+            const confirmed = confirm('¿Confirmas que el servicio ha sido completado a tu satisfacción?');
+            if (confirmed) {
+                try {
+                    await completeContract(contractId);
+                    alert('Has confirmado la finalización del servicio.');
+                    loadAndRenderClientContracts(); // Recargamos la lista
+                } catch (error) {
+                    alert(`Error al confirmar: ${error.message}`);
+                }
+            }
+        }
     });
 
     // Agregar limpieza global cuando se presione ESC
@@ -725,7 +753,7 @@ async function loadAndRenderClientContracts() {
     const container = document.getElementById('client-contracts-container');
     if (!container) return;
     container.innerHTML = '<p class="text-muted">Cargando contratos...</p>';
-    
+
     try {
         const contracts = await getContracts();
         if (contracts.length === 0) {
@@ -733,22 +761,38 @@ async function loadAndRenderClientContracts() {
             return;
         }
 
-        //  AÑADIMOS LA FUNCIÓN AUXILIAR PARA LAS ETIQUETAS
-        const getStatusBadge = (status) => {
-            const statusMap = {
-                pending: { bg: 'warning', text: 'Pendiente' },
-                accepted: { bg: 'success', text: 'Aceptado' },
-                denied: { bg: 'danger', text: 'Rechazado' },
-                completed: { bg: 'info', text: 'Completado' },
-                paid: { bg: 'primary', text: 'Pagado' }
-            };
-            const { bg, text } = statusMap[status] || { bg: 'secondary', text: status };
-            return `<span class="badge bg-${bg}">${text}</span>`;
+        const getContractDisplay = (contract) => {
+            let badge = '';
+            let actions = '';
+            const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
+
+            // Lógica para determinar el estado y los botones
+            if (isCompletedByBoth) {
+                badge = `<span class="badge bg-primary">Terminado</span>`;
+                actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="${contract.id_contract}">🗑️</button>`;
+            } else if (contract.status === 'accepted') {
+                if (contract.client_marked_completed) {
+                    badge = `<span class="badge bg-info">Esperando Proveedor</span>`;
+                    actions = ''; // Ya confirmó, no hay más acciones para él
+                } else {
+                    badge = `<span class="badge bg-success">Aceptado</span>`;
+                    actions = `<button class="btn btn-sm btn-info btn-complete-contract" data-contract-id="${contract.id_contract}">Marcar Terminado</button>`;
+                }
+            } else if (contract.status === 'denied') {
+                badge = `<span class="badge bg-danger">Rechazado</span>`;
+                actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="${contract.id_contract}">🗑️</button>`;
+            } else { // pending
+                badge = `<span class="badge bg-warning">Pendiente</span>`;
+                actions = ''; // No hay acciones mientras esté pendiente
+            }
+
+            return { badge, actions };
         };
-        
+
         container.innerHTML = ''; // Limpiamos el contenedor
-        // actualizamos html para mostrar etiquetas
         contracts.forEach(contract => {
+            const { badge, actions } = getContractDisplay(contract);
+            
             container.innerHTML += `
                 <div class="card mb-2">
                     <div class="card-body p-2">
@@ -757,7 +801,10 @@ async function loadAndRenderClientContracts() {
                                 <p class="mb-0 small"><strong>${contract.service_name}</strong></p>
                                 <p class="card-text text-muted small mb-0">Con: ${contract.provider_name}</p>
                             </div>
-                            ${getStatusBadge(contract.status)}
+                            <div class="d-flex align-items-center gap-2">
+                                ${badge}
+                                ${actions}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -769,7 +816,6 @@ async function loadAndRenderClientContracts() {
         container.innerHTML = '<p class="text-danger">Error al cargar los contratos.</p>';
     }
 }
-
 /**
  * Configura el botón de favoritos en el navbar
  */

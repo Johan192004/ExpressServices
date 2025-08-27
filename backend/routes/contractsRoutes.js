@@ -60,6 +60,7 @@ router.get('/', protect, async (req, res) => {
         let query = `
             SELECT 
                 ct.id_contract, ct.agreed_hours, ct.agreed_price, ct.status, ct.offer_date,
+                ct.client_marked_completed, ct.provider_marked_completed,
                 s.name as service_name,
                 u_client.full_name as client_name,
                 u_provider.full_name as provider_name
@@ -135,5 +136,121 @@ router.patch('/:id/respond', protect, async (req, res) => {
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
+
+/**
+ * @route   PATCH /api/contracts/:id/complete
+ * @desc    Un cliente o proveedor marca un contrato aceptado como completado
+ * @access  Private
+ */
+router.patch('/:id/complete', protect, async (req, res) => {
+    try {
+        const { id: contractId } = req.params;
+        const { id: userId, roles } = req.user;
+
+        // 1. Obtener el contrato y verificar la pertenencia del usuario
+        const [contractRows] = await pool.query(
+            `SELECT 
+                ct.status, ct.id_client, s.id_provider,
+                c.id_user as client_user_id, p.id_user as provider_user_id
+             FROM contracts ct
+             JOIN services s ON ct.id_service = s.id_service
+             JOIN clients c ON ct.id_client = c.id_client
+             JOIN providers p ON s.id_provider = p.id_provider
+             WHERE ct.id_contract = ?`,
+            [contractId]
+        );
+
+        if (contractRows.length === 0) {
+            return res.status(404).json({ error: 'Contrato no encontrado.' });
+        }
+
+        const contract = contractRows[0];
+        const isClient = userId === contract.client_user_id;
+        const isProvider = userId === contract.provider_user_id;
+
+        if (!isClient && !isProvider) {
+            return res.status(403).json({ error: 'No tienes permiso para modificar este contrato.' });
+        }
+        
+        if (contract.status !== 'accepted') {
+            return res.status(400).json({ error: 'Solo se pueden completar los contratos aceptados.' });
+        }
+
+        // 2. Determinar qué columna actualizar según el rol del usuario
+        let columnToUpdate = '';
+        if (isClient) {
+            columnToUpdate = 'client_marked_completed';
+        } else if (isProvider) {
+            columnToUpdate = 'provider_marked_completed';
+        }
+
+        // 3. Actualizar el contrato
+        const updateQuery = `UPDATE contracts SET ${columnToUpdate} = NOW() WHERE id_contract = ?`;
+        await pool.query(updateQuery, [contractId]);
+
+        res.json({ message: '¡Servicio marcado como completado! Esperando la confirmación de la otra parte.' });
+
+    } catch (error) {
+        console.error("Error al marcar el contrato como completado:", error);
+        res.status(500).json({ error: 'Error en el servidor.' });
+    }
+});
+
+
+/**
+ * @route   DELETE /api/contracts/:id
+ * @desc    Elimina un contrato (si está rechazado o si ambas partes lo marcaron como completado)
+ * @access  Private
+ */
+router.delete('/:id', protect, async (req, res) => {
+    try {
+        const { id: contractId } = req.params;
+        const { id: userId } = req.user;
+
+        // 1. Obtener el contrato y verificar la pertenencia del usuario
+        const [contractRows] = await pool.query(
+            `SELECT 
+                ct.status, ct.client_marked_completed, ct.provider_marked_completed,
+                c.id_user as client_user_id, p.id_user as provider_user_id
+             FROM contracts ct
+             JOIN services s ON ct.id_service = s.id_service
+             JOIN clients c ON ct.id_client = c.id_client
+             JOIN providers p ON s.id_provider = p.id_provider
+             WHERE ct.id_contract = ?`,
+            [contractId]
+        );
+
+        if (contractRows.length === 0) {
+            // No enviar "no encontrado" para no dar pistas, solo un error de permiso.
+            return res.status(403).json({ error: 'No tienes permiso para eliminar este contrato.' });
+        }
+
+        const contract = contractRows[0];
+        const isClient = userId === contract.client_user_id;
+        const isProvider = userId === contract.provider_user_id;
+
+        if (!isClient && !isProvider) {
+            return res.status(403).json({ error: 'No tienes permiso para eliminar este contrato.' });
+        }
+
+        // 2. Comprobar si el contrato se puede eliminar
+        const isDenied = contract.status === 'denied';
+        const isCompletedByBoth = contract.client_marked_completed !== null && contract.provider_marked_completed !== null;
+
+        if (!isDenied && !isCompletedByBoth) {
+            return res.status(400).json({ error: 'Este contrato no puede ser eliminado en su estado actual.' });
+        }
+
+        // 3. Eliminar el contrato
+        await pool.query('DELETE FROM contracts WHERE id_contract = ?', [contractId]);
+
+        res.json({ message: 'Contrato eliminado con éxito.' });
+
+    } catch (error) {
+        console.error("Error al eliminar el contrato:", error);
+        res.status(500).json({ error: 'Error en el servidor.' });
+    }
+});
+
 
 module.exports = router;
