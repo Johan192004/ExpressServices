@@ -70,8 +70,6 @@ if (loginForm) {
                     loginResultDiv.textContent = `¡Bienvenido, ${result.user.full_name}! Redirigiendo...`;
                     loginResultDiv.className = 'mt-3 text-center text-success';
                 }
-                
-                // ▼▼▼ AQUÍ ESTÁ LA LÓGICA DE REDIRECCIÓN CORREGIDA ▼▼▼
                 setTimeout(() => {
                     // Verificamos los roles que nos devolvió el backend
                     const userRoles = result.user.roles || [];

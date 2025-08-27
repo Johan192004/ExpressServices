@@ -217,20 +217,23 @@ export const deleteService = (serviceId) => fetchWithAuth(`/services/${serviceId
     method: 'DELETE'
 });
 
-export const createContract = async (contractData) => {
-    return fetchWithAuth('/contracts', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json' 
-        },
-        body: JSON.stringify(contractData)
-    });
-
-};
+export const createContract = (contractData) => fetchWithAuth('/contracts', {
+    method: 'POST',
+    body: JSON.stringify(contractData)
+});
 
 export const getContracts = () => fetchWithAuth('/contracts');
 
 export const respondToContract = (contractId, action) => fetchWithAuth(`/contracts/${contractId}/respond`, {
     method: 'PATCH',
     body: JSON.stringify({ action }) // 'accepted' o 'denied'
+});
+
+
+export const completeContract = (contractId) => fetchWithAuth(`/contracts/${contractId}/complete`, {
+    method: 'PATCH'
+});
+
+export const deleteContract = (contractId) => fetchWithAuth(`/contracts/${contractId}`, {
+    method: 'DELETE'
 });
