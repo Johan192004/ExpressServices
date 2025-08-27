@@ -32,7 +32,7 @@ async function main() {
     await loadAndRenderConversations();
     await loadCategoriesIntoSelect();
     await loadMyServices();
-    setupPageEventListeners(); 
+    setupEventListeners(); 
 }
 
 // LÓGICA DE CARGA Y RENDERIZACIÓN 
@@ -107,9 +107,12 @@ function renderMyServices(services) {
                     <div class="card-body d-flex flex-column">
                         <h5 class="card-title fw-bold">${service.name}</h5>
                         <p class="card-text small text-muted flex-grow-1">${(service.description || '').substring(0, 100)}...</p>
-                        <div class="card-footer bg-white border-0 d-flex justify-content-end p-0 pt-3">
-                            <button class="btn btn-outline-secondary btn-sm me-2 btn-edit-service" data-service-id="${service.id_service}" data-bs-toggle="modal" data-bs-target="#serviceFormModal">Editar</button>
-                            <button class="btn btn-outline-danger btn-sm btn-delete-service" data-service-id="${service.id_service}">Eliminar</button>
+                        <div class="card-footer bg-white border-0 d-flex justify-content-center p-0 pt-3">
+                            <div class="btn-group btn-group-sm w-100" role="group">
+                                <button class="btn btn-outline-info btn-show-reviews" data-service-id="${service.id_service}" title="Ver reviews">Reviews</button>
+                                <button type="button" class="btn btn-outline-secondary btn-edit-service" data-service-id="${service.id_service}" title="Editar servicio"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-outline-danger btn-delete-service" data-service-id="${service.id_service}" title="Eliminar servicio"><i class="bi bi-trash"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -130,7 +133,61 @@ async function loadCategoriesIntoSelect() {
 
 // LÓGICA DE EVENTOS Y FORMULARIOS 
 
-function setupPageEventListeners() {
+function setupEventListeners() {
+
+    // Evento para mostrar reviews de cada servicio
+    document.getElementById('my-services-container').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-show-reviews');
+        if (btn) {
+            const serviceId = btn.dataset.serviceId;
+            // Eliminar modal anterior de reviews si existe
+            document.getElementById('reviewsModal')?.remove();
+            // Mostrar modal de reviews inmediatamente con 'Cargando...'
+            const reviewsModalHtml = `
+                <div class="modal fade" id="reviewsModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Reseñas del Servicio</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body" id="reviews-modal-body">
+                                <p class='text-muted'>Cargando...</p>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', reviewsModalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('reviewsModal'));
+            modal.show();
+            // Cargar reviews
+            try {
+                const { getReviewsByServiceId } = await import('./api/reviews.js');
+                const reviews = await getReviewsByServiceId(serviceId);
+                let reviewsHtml = '';
+                if (reviews.length === 0) {
+                    reviewsHtml = '<p class="text-muted">No hay reviews para este servicio.</p>';
+                } else {
+                    reviewsHtml = reviews.map(r => `
+                        <div class="border rounded p-3 mb-3 bg-light">
+                            <div class="d-flex align-items-center mb-2">
+                                <strong class="me-2">${r.full_name || r.reviewer}</strong>
+                                <span class="text-warning">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</span>
+                            </div>
+                            <div>${r.description}</div>
+                        </div>
+                    `).join('');
+                }
+                document.getElementById('reviews-modal-body').innerHTML = reviewsHtml;
+            } catch (err) {
+                document.getElementById('reviews-modal-body').innerHTML = '<p class="text-danger">Ha ocurrido un error al cargar las reviews.</p>';
+            }
+        }
+    });
     const serviceModalEl = document.getElementById('serviceFormModal');
     if (!serviceModalEl) return;
     
@@ -138,93 +195,185 @@ function setupPageEventListeners() {
     const serviceForm = document.getElementById('serviceForm');
     const modalTitle = document.getElementById('service-modal-title');
 
-    //  LISTENER #1: Envío del formulario de Crear/Editar Servicio 
-    serviceForm.addEventListener('submit', async (e) => {
+
+    // Lógica para crear servicio (modal original)
+    document.getElementById('btn-open-create-modal').addEventListener('click', () => {
+        modalTitle.textContent = 'Publicar Nuevo Servicio';
+        serviceForm.reset();
+        serviceForm.querySelector('input[name="id_service"]').value = '';
+        serviceModal.show();
+    });
+
+    // Lógica para editar servicio (modal independiente, singleton)
+    // create or get singleton edit modal
+    function createEditModalOnce() {
+        if (document.getElementById('editServiceModal')) return;
+        const html = `
+            <div class="modal fade" id="editServiceModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <form id="edit-service-form">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Editar Servicio</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <input type="hidden" name="id_service" value="">
+                                <div class="mb-3">
+                                    <label class="form-label">Nombre</label>
+                                    <input type="text" class="form-control" name="name" value="" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Descripción</label>
+                                    <textarea class="form-control" name="description" required></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Precio por hora</label>
+                                    <input type="number" class="form-control" name="hour_price" value="" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Años de experiencia</label>
+                                    <input type="number" class="form-control" name="experience_years" value="" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label">Categoría</label>
+                                    <select class="form-select" name="id_category" id="edit-category-select" required></select>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="submit" class="btn btn-primary">Actualizar</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        const editForm = document.getElementById('edit-service-form');
+        // attach submit handler once
+        editForm.addEventListener('submit', async (ev) => {
+            ev.preventDefault();
+            const formData = new FormData(ev.target);
+            const data = Object.fromEntries(formData.entries());
+            const id = data.id_service;
+            try {
+                await updateService(id, data);
+                alert('Servicio actualizado con éxito.');
+                const modalEl = document.getElementById('editServiceModal');
+                const bs = bootstrap.Modal.getInstance(modalEl);
+                if (bs) bs.hide();
+                loadMyServices();
+            } catch (err) {
+                alert('Error al actualizar el servicio.');
+            }
+        });
+        // remove from DOM on hide to keep clean state
+        document.getElementById('editServiceModal').addEventListener('hidden.bs.modal', (ev) => {
+            ev.target.remove();
+        }, { once: true });
+    }
+
+    document.getElementById('my-services-container').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-edit-service');
+        if (!btn) return;
+        const serviceId = btn.dataset.serviceId;
+        // show lightweight overlay
+        const existingOverlay = document.getElementById('loadingServiceOverlay');
+        if (existingOverlay) existingOverlay.remove();
+        const overlay = document.createElement('div');
+        overlay.id = 'loadingServiceOverlay';
+        overlay.style.position = 'fixed';
+        overlay.style.inset = '0';
+        overlay.style.display = 'flex';
+        overlay.style.alignItems = 'center';
+        overlay.style.justifyContent = 'center';
+        overlay.style.background = 'rgba(0,0,0,0.4)';
+        overlay.style.zIndex = '1080';
+        overlay.innerHTML = `
+            <div class="text-center p-3 bg-white rounded shadow">
+                <div class="spinner-border text-primary mb-2" role="status"><span class="visually-hidden">Loading...</span></div>
+                <div>Cargando información del servicio...</div>
+            </div>`;
+        document.body.appendChild(overlay);
+        try {
+            const service = await getServiceById(serviceId);
+            document.getElementById('loadingServiceOverlay')?.remove();
+            // ensure singleton modal exists
+            createEditModalOnce();
+            // populate fields
+            const modalEl = document.getElementById('editServiceModal');
+            const form = modalEl.querySelector('#edit-service-form');
+            form.id_service.value = service.id_service;
+            form.name.value = service.name;
+            form.description.value = service.description;
+            form.hour_price.value = service.hour_price;
+            form.experience_years.value = service.experience_years;
+            // populate categories into edit select
+            const editSelect = document.getElementById('edit-category-select');
+            editSelect.innerHTML = '';
+            Array.from(document.getElementById('categorySelect').options).forEach(opt => {
+                const o = document.createElement('option');
+                o.value = opt.value;
+                o.textContent = opt.text;
+                if (opt.value == service.id_category) o.selected = true;
+                editSelect.appendChild(o);
+            });
+            // show modal
+            const bsModal = new bootstrap.Modal(modalEl);
+            bsModal.show();
+        } catch (err) {
+            document.getElementById('loadingServiceOverlay')?.remove();
+            alert('No se pudo cargar la información del servicio.');
+        }
+    });
+
+    // Listener separado para eliminar servicios
+    document.getElementById('my-services-container').addEventListener('click', async (e) => {
+        const btn = e.target.closest('.btn-delete-service');
+        if (!btn) return;
+        const serviceId = btn.dataset.serviceId;
+        if (confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
+            try {
+                await deleteService(serviceId);
+                alert('Servicio eliminado.');
+                loadMyServices();
+            } catch (error) { alert(`Error al eliminar: ${error.message}`); }
+        }
+    });    serviceForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(serviceForm);
         const data = Object.fromEntries(formData.entries());
         const serviceId = data.id_service;
-
         try {
-            if (serviceId) { // Si hay un ID, estamos editando
+            if (serviceId) {
                 await updateService(serviceId, data);
                 alert('Servicio actualizado con éxito.');
-            } else { // Si no, estamos creando
+            } else {
                 data.id_provider = myProviderId;
                 await createService(data);
                 alert('Servicio creado con éxito.');
             }
             serviceModal.hide();
-            loadMyServices(); // Recargamos la lista para ver los cambios
-        } catch (error) { 
-            alert(`Error al guardar el servicio: ${error.message}`); 
-        }
+            loadMyServices();
+        } catch (error) { alert(`Error al guardar: ${error.message}`); }
     });
-
-    //  LISTENER #2: Un único listener para todos los clics en la página 
-    document.body.addEventListener('click', async (e) => {
-        const target = e.target;
-        
-        // Buscamos el objetivo del clic usando .closest() para más robustez 
-        const createBtn = target.closest('#btn-open-create-modal');
-        const editBtn = target.closest('.btn-edit-service');
-        const deleteBtn = target.closest('.btn-delete-service');
-        const conversationLink = target.closest('.conversation-item');
-        const acceptContractBtn = target.closest('.btn-accept-contract');
-        const denyContractBtn = target.closest('.btn-deny-contract');
-
-        // Ahora creamos lógica para cada tipo de clic 
-
-        // Clic en "Publicar Nuevo Servicio"
-        if (createBtn) {
-            modalTitle.textContent = 'Publicar Nuevo Servicio';
-            serviceForm.reset();
-            serviceForm.querySelector('input[name="id_service"]').value = '';
-            // No es necesario el data-bs-toggle="modal" en el botón si lo manejamos aquí
-            serviceModal.show();
-        }
-        
-        // Clic en "Editar" en una tarjeta de servicio
-        else if (editBtn) {
-            const serviceId = editBtn.dataset.serviceId;
-            try {
-                const service = await getServiceById(serviceId);
-                modalTitle.textContent = 'Editar Servicio';
-                // Llenamos el formulario con los datos del servicio
-                serviceForm.querySelector('input[name="id_service"]').value = service.id_service;
-                serviceForm.querySelector('input[name="name"]').value = service.name;
-                serviceForm.querySelector('textarea[name="description"]').value = service.description;
-                serviceForm.querySelector('input[name="hour_price"]').value = service.hour_price;
-                serviceForm.querySelector('input[name="experience_years"]').value = service.experience_years;
-                serviceForm.querySelector('select[name="id_category"]').value = service.id_category;
-            } catch (error) { 
-                alert('No se pudo cargar la información del servicio.'); 
-            }
-        }
-        
-        // Clic en "Eliminar" en una tarjeta de servicio
-        else if (deleteBtn) {
-            const serviceId = deleteBtn.dataset.serviceId;
-            if (confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
-                try {
-                    await deleteService(serviceId);
-                    alert('Servicio eliminado.');
-                    loadMyServices(); // Recargamos la lista de servicios
-                } catch(error) { 
-                    alert(`Error al eliminar: ${error.message}`); 
-                }
-            }
-        }
-        
-        // Clic en una conversación de la bandeja de entrada
-        else if (conversationLink) {
+    
+    document.getElementById('conversations-container').addEventListener('click', async(e) => {
+        const conversationLink = e.target.closest('.conversation-item');
+        if (conversationLink) {
             e.preventDefault();
             const conversationId = conversationLink.dataset.conversationId;
             openChatModal(conversationId);
         }
+    });
+
+    // Event listener separado para los contratos
+    document.getElementById('contracts-container').addEventListener('click', async (e) => {
+        const acceptContractBtn = e.target.closest('.btn-accept-contract');
+        const denyContractBtn = e.target.closest('.btn-deny-contract');
 
         // Clic en "Aceptar" contrato
-        else if (acceptContractBtn) {
+        if (acceptContractBtn) {
             const contractId = acceptContractBtn.dataset.id;
             acceptContractBtn.disabled = true;
             acceptContractBtn.textContent = '...';

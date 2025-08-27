@@ -1,29 +1,63 @@
 // frontend/js/clientView.js
 
+import { getClientById, putClient, getUserProfile } from "./api/authService.js";
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById, createContract, getContracts } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
+import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
+import { getReviewsByServiceId } from "./api/reviews.js";
 
 // ===================================================================
 // PUNTO DE ENTRADA PRINCIPAL
 // ===================================================================
-document.addEventListener('DOMContentLoaded', () => {
+let myClientId = null; // El ID de cliente del usuario logueado
+let currentFavorites = []; // Array para almacenar los IDs de servicios favoritos
+
+document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificamos si el usuario tiene permiso para estar aquí
     if (!localStorage.getItem('token')) {
         alert('Debes iniciar sesión para acceder a esta página.');
         window.location.href = '/frontend/index.html';
         return;
     }
-    // 2. Cargamos todos los componentes dinámicos de la página
+
+    const userProfile = await getUserProfile();
+    if (!userProfile.id_client) {
+        alert('Acceso denegado. Debes tener un perfil de cliente.');
+        window.location.href = '/frontend/index.html';
+        return;
+    }
+    myClientId = userProfile.id_client;
+
+    // 2. Cargamos los favoritos del usuario
+    await loadCurrentFavorites();
+
+    // 3. Cargamos todos los componentes dinámicos de la página
     loadAndRenderClientConversations();
     loadAndSetupCategories();
     setupPageEventListeners();
     loadAndRenderClientContracts();
+    setupFavoritesButton();
+    setupProfileModal();
 });
 
 
 // ===================================================================
 // SECCIÓN 1: LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS
 // ===================================================================
+
+/**
+ * Carga los favoritos actuales del usuario desde la API.
+ */
+async function loadCurrentFavorites() {
+    if (!myClientId) return;
+    try {
+        const favorites = await getFavoritesById(myClientId);
+        currentFavorites = favorites.map(fav => fav.id_service);
+    } catch (error) {
+        console.error('Error al cargar favoritos:', error);
+        currentFavorites = [];
+    }
+}
 
 /**
  * Pide las conversaciones del cliente a la API y las muestra en la bandeja de entrada.
@@ -99,7 +133,9 @@ function renderServices(services) {
         servicesContainer.innerHTML = '<p class="text-center text-muted col-12">No se encontraron servicios en esta categoría.</p>';
         return;
     }
+    
     services.forEach(service => {
+        const isFavorite = currentFavorites.includes(service.id_service);
         servicesContainer.innerHTML += `
             <div class="col">
                 <div class="card service-card h-100">
@@ -108,6 +144,9 @@ function renderServices(services) {
                         <h5 class="card-title mt-3 fw-bold">${service.name}</h5>
                         <p class="card-text text-muted small">Por ${service.provider_name}</p>
                         <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                        <button class="btn btn-link p-0 favorite-btn" data-service-id="${service.id_service}" title="${isFavorite ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+                            <i class="bi ${isFavorite ? 'bi-star-fill text-warning' : 'bi-star'}" style="font-size: 1.5rem;"></i>
+                        </button>
                         <hr>
                         <button class="btn btn-sm btn-outline-primary btn-see-more mt-auto" data-service-id="${service.id_service}">Ver Detalles</button>
                     </div>
@@ -120,7 +159,10 @@ function renderServices(services) {
  * Muestra un modal con la información detallada de un servicio.
  */
 async function showServiceDetailModal(serviceId) {
+    // Limpiar cualquier modal anterior y backdrop residual
     document.getElementById('serviceDetailModal')?.remove();
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
     try {
         const service = await getServiceById(serviceId);
         window.currentServiceData = service;
@@ -128,25 +170,301 @@ async function showServiceDetailModal(serviceId) {
             <div class="modal fade" id="serviceDetailModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered modal-lg">
                     <div class="modal-content">
-                        <div class="modal-header"><h5 class="modal-title fw-bold">${service.name}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">${service.name}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
                         <div class="modal-body">
                             <div class="row">
-                                <div class="col-md-4 text-center"><img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}"><h5 class="fw-bold">${service.provider_name}</h5><p class="text-muted small">${service.bio || ''}</p></div>
-                                <div class="col-md-8"><p class="text-muted">Categoría: ${service.category_title || 'No especificada'}</p><p>${service.description}</p><hr><p><strong>Años de experiencia:</strong> ${service.experience_years}</p><h4 class="fw-bold text-primary">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h4></div>
+                                <div class="col-md-4 text-center">
+                                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover; aspect-ratio: 1/1;" alt="${service.provider_name}">
+                                    <h5 class="fw-bold">${service.provider_name}</h5>
+                                    <p class="text-muted small">${service.bio || ''}</p>
+                                </div>
+                                <div class="col-md-8">
+                                    <p class="text-muted">Categoría: ${service.category_title || 'No especificada'}</p>
+                                    <p>${service.description}</p>
+                                    <hr>
+                                    <p><strong>Años de experiencia:</strong> ${service.experience_years}</p>
+                                    <h4 class="fw-bold text-primary">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h4>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer border-0 justify-content-between">
-                            <div><button type="button" class="btn btn-success" id="modal-propose-contract-btn">Contratar Horas</button></div>
+                            <div>
+                                <button type="button" class="btn btn-outline-dark me-2" id="btn-show-reviews">Ver reviews</button>
+                                <button type="button" class="btn btn-success" id="modal-propose-contract-btn">Contratar Horas</button>
+                            </div>
                             <div><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-primary btn-glow" id="modal-contact-btn" data-service-id="${service.id_service}">Contactar</button></div>
                         </div>
                     </div>
                 </div>
             </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        new bootstrap.Modal(document.getElementById('serviceDetailModal')).show();
+        
+        const serviceModal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
+        serviceModal.show();
+
+        // Evento para mostrar reviews (ahora en el footer)
+        document.getElementById('btn-show-reviews').addEventListener('click', async () => {
+            // Ocultar el modal de detalles del servicio temporalmente
+            const detailModal = bootstrap.Modal.getInstance(document.getElementById('serviceDetailModal'));
+            if (detailModal) {
+                detailModal.hide();
+            }
+            
+            // Esperar a que el modal se oculte completamente y luego mostrar reviews
+            document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function showReviewsAfterHide() {
+                showReviewsModal(service.id_service, serviceId);
+                // Remover este listener para evitar múltiples ejecuciones
+                this.removeEventListener('hidden.bs.modal', showReviewsAfterHide);
+            });
+        });
+        
+        // Limpiar backdrop cuando se cierre este modal
+        document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function() {
+            cleanupModalBackdrops();
+        });
+        
     } catch (error) {
         alert('Error al cargar detalles del servicio.');
     }
+}
+
+/**
+ * Maneja el clic en el botón de favoritos para agregar o quitar de favoritos.
+ * @param {string} serviceId - El ID del servicio.
+ */
+async function toggleFavorite(serviceId) {
+    if (!myClientId) {
+        alert('Debes iniciar sesión para agregar favoritos.');
+        return;
+    }
+
+    const isFavorite = currentFavorites.includes(parseInt(serviceId));
+    
+    try {
+        if (isFavorite) {
+            // Quitar de favoritos
+            await deleteFavorite({ id_client: myClientId, id_service: serviceId });
+            currentFavorites = currentFavorites.filter(id => id !== parseInt(serviceId));
+        } else {
+            // Agregar a favoritos
+            await postFavorite({ id_client: myClientId, id_service: serviceId });
+            currentFavorites.push(parseInt(serviceId));
+        }
+        
+        // Actualizar la estrella en la interfaz
+        const favoriteBtn = document.querySelector(`[data-service-id="${serviceId}"].favorite-btn`);
+        if (favoriteBtn) {
+            const icon = favoriteBtn.querySelector('i');
+            const newIsFavorite = currentFavorites.includes(parseInt(serviceId));
+            
+            if (newIsFavorite) {
+                icon.className = 'bi bi-star-fill text-warning';
+                favoriteBtn.title = 'Quitar de favoritos';
+            } else {
+                icon.className = 'bi bi-star';
+                favoriteBtn.title = 'Agregar a favoritos';
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error al actualizar favoritos:', error);
+        alert('Error al actualizar favoritos. Inténtalo de nuevo.');
+    }
+}
+
+/**
+ * Abre un modal para visualizar los servicios favoritos del cliente.
+ */
+async function showFavoriteServices() {
+    if (!myClientId) {
+        alert('No se encontró tu id de cliente.');
+        return;
+    }
+    
+    // Recargar favoritos actuales
+    await loadCurrentFavorites();
+    
+    let favorites = [];
+    try {
+        favorites = await getFavoritesById(myClientId);
+    } catch (err) {
+        alert('No se pudieron cargar tus favoritos.');
+        return;
+    }
+    
+    // Eliminar modal anterior si existe
+    let oldModal = document.getElementById('favoritesModal');
+    if (oldModal) oldModal.remove();
+
+    let modalHtml = `
+        <div class="modal fade" id="favoritesModal" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title fw-bold">Mis Favoritos</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            ${favorites.length === 0 ? '<p class="text-center text-muted">No tienes servicios favoritos.</p>' : favorites.map(service => `
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-body text-center d-flex flex-column">
+                                            <img src="${service.personal_picture || 'default.png'}" alt="${service.provider_name}" class="provider-avatar mb-2">
+                                            <h5 class="card-title fw-bold">${service.name}</h5>
+                                            <p class="card-text text-muted small">Por ${service.provider_name}</p>
+                                            <p class="card-text small flex-grow-1">${(service.description || '').substring(0, 80)}...</p>
+                                            <h6 class="fw-bold text-primary mt-2">$${(service.hour_price || 0).toLocaleString('es-CO')} / hora</h6>
+                                            <button class="btn btn-sm btn-outline-primary btn-see-more mt-2" data-service-id="${service.id_service}">Ver Detalles</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const favoritesModal = new bootstrap.Modal(document.getElementById('favoritesModal'));
+    favoritesModal.show();
+    
+    // Limpiar backdrop cuando se cierre el modal de favoritos normalmente
+    document.getElementById('favoritesModal').addEventListener('hidden.bs.modal', function() {
+        cleanupModalBackdrops();
+    });
+    
+    // Agregar event listener para los botones "Ver Detalles" dentro del modal de favoritos
+    document.getElementById('favoritesModal').addEventListener('click', (e) => {
+        const seeMoreBtn = e.target.closest('.btn-see-more');
+        if (seeMoreBtn) {
+            const serviceId = seeMoreBtn.dataset.serviceId;
+            
+            // Cerrar el modal de favoritos completamente y limpiar el backdrop
+            favoritesModal.hide();
+            
+            // Asegurar que el backdrop se elimine completamente
+            favoritesModal._element.addEventListener('hidden.bs.modal', function handleModalHidden() {
+                // Remover cualquier backdrop que pueda quedar
+                document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+                
+                // Restaurar el scroll del body
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('padding-right');
+                
+                // Mostrar el modal de detalles del servicio
+                showServiceDetailModal(serviceId);
+                
+                // Remover este event listener para evitar múltiples ejecuciones
+                this.removeEventListener('hidden.bs.modal', handleModalHidden);
+            });
+        }
+    });
+}
+
+/**
+ * Muestra un modal con las reviews de un servicio específico.
+ */
+async function showReviewsModal(serviceId, originalServiceId) {
+    console.log(serviceId)
+    // Eliminar modal anterior si existe
+    let oldModal = document.getElementById('reviewsModal');
+    if (oldModal) oldModal.remove();
+
+    // Limpiar cualquier backdrop residual antes de crear el nuevo modal
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+
+    try {
+        const reviews = await getReviewsByServiceId(serviceId);
+        
+        const modalHtml = `
+            <div class="modal fade" id="reviewsModal" tabindex="-1" data-bs-backdrop="true" data-bs-keyboard="true">
+                <div class="modal-dialog modal-dialog-centered modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title fw-bold">Reviews del Servicio</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            ${reviews.length === 0 ? 
+                                '<p class="text-center text-muted">Este servicio aún no tiene reviews.</p>' : 
+                                reviews.map(review => `
+                                    <div class="card mb-3">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                                <h6 class="card-title mb-0">${review.full_name}</h6>
+                                                <div class="text-warning">
+                                                    ${'★'.repeat(review.stars)}${'☆'.repeat(5 - review.stars)}
+                                                </div>
+                                            </div>
+                                            <p class="card-text">${review.description}</p>
+                                            <small class="text-muted">${new Date(review.created_at).toLocaleDateString()}</small>
+                                        </div>
+                                    </div>
+                                `).join('')
+                            }
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        
+        // Crear el modal con configuración explícita para asegurar el backdrop
+        const reviewsModal = new bootstrap.Modal(document.getElementById('reviewsModal'), {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        reviewsModal.show();
+        
+        // Configurar evento para restaurar el modal de detalles cuando se cierre el modal de reviews
+        document.getElementById('reviewsModal').addEventListener('hidden.bs.modal', function() {
+            // Limpiar backdrops residuales
+            cleanupModalBackdrops();
+            
+            // Restaurar el modal de detalles del servicio inmediatamente
+            const serviceDetailModal = document.getElementById('serviceDetailModal');
+            if (serviceDetailModal) {
+                const detailModal = new bootstrap.Modal(serviceDetailModal);
+                detailModal.show();
+            }
+        }, { once: true }); // Solo ejecutar una vez
+        
+    } catch (error) {
+        console.error('Error al cargar reviews:', error);
+        alert('Error al cargar las reviews del servicio.');
+        
+        // Si hay error, también restaurar el modal de detalles inmediatamente
+        const serviceDetailModal = document.getElementById('serviceDetailModal');
+        if (serviceDetailModal) {
+            const detailModal = new bootstrap.Modal(serviceDetailModal);
+            detailModal.show();
+        }
+    }
+}
+
+/**
+ * Función utilitaria para limpiar backdrops residuales de Bootstrap modals
+ */
+function cleanupModalBackdrops() {
+    // Remover todos los backdrops
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
+    // Restaurar el estado del body
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('overflow');
 }
 
 // ===================================================================
@@ -163,6 +481,7 @@ function setupPageEventListeners() {
         const conversationLink = target.closest('.conversation-item');
         const proposeContractBtn = target.closest('#modal-propose-contract-btn');
         const confirmContractBtn = target.closest('#confirm-contract-btn');
+        const favoriteBtn = target.closest('.favorite-btn');
 
         // --- Lógica para cada tipo de clic ---
 
@@ -179,6 +498,11 @@ function setupPageEventListeners() {
                 const services = await getServices({ id_category: categoryId });
                 renderServices(services);
             } catch (error) { console.error("Error al cargar servicios:", error); }
+        }
+        else if (favoriteBtn) {
+            e.preventDefault();
+            const serviceId = favoriteBtn.dataset.serviceId;
+            await toggleFavorite(serviceId);
         }
         else if (seeMoreBtn) {
             const serviceId = seeMoreBtn.dataset.serviceId;
@@ -260,6 +584,13 @@ function setupPageEventListeners() {
             }
         }
     });
+
+    // Agregar limpieza global cuando se presione ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            setTimeout(cleanupModalBackdrops, 100);
+        }
+    });
 }
 
 async function loadAndRenderClientContracts() {
@@ -308,5 +639,113 @@ async function loadAndRenderClientContracts() {
     } catch (error) {
         console.error("Error al cargar contratos del cliente:", error);
         container.innerHTML = '<p class="text-danger">Error al cargar los contratos.</p>';
+    }
+}
+
+/**
+ * Configura el botón de favoritos en el navbar
+ */
+function setupFavoritesButton() {
+    const favBtn = document.getElementById('show-favorites-btn');
+    if (favBtn) {
+        favBtn.addEventListener('click', showFavoriteServices);
+    }
+}
+
+/**
+ * Configura el modal de perfil del cliente
+ */
+function setupProfileModal() {
+    const profileLink = document.getElementById('profile-link');
+    if (profileLink) {
+        profileLink.addEventListener('click', async (e) => {
+            e.preventDefault();
+            // Eliminar modal anterior si existe
+            let oldModal = document.getElementById('clientProfileModal');
+            if (oldModal) oldModal.remove();
+
+            // Obtener id_client
+            if (!myClientId) {
+                alert('No se encontró tu id de cliente.');
+                return;
+            }
+
+            // Obtener datos del cliente
+            let clientData;
+            try {
+                clientData = await getClientById(myClientId);
+            } catch (err) {
+                alert('No se pudo cargar tu información de perfil.');
+                return;
+            }
+
+            // Crear el modal
+            const modalHtml = `
+                <div class="modal fade" id="clientProfileModal" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <form id="client-profile-form">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">Mi Perfil</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="mb-3">
+                                        <label for="profile-full-name" class="form-label">Nombre completo</label>
+                                        <input type="text" class="form-control" id="profile-full-name" name="full_name" value="${clientData[0].full_name || ''}" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="profile-email" class="form-label">Correo electrónico</label>
+                                        <input type="email" class="form-control" id="profile-email" name="email" value="${clientData[0].email || ''}" readonly disabled>
+                                    </div>
+                                    <div class="mb-3 text-end">
+                                        <button type="button" class="btn btn-link p-0" id="btn-reset-password">Cambiar contraseña</button>
+                                    </div>
+                                    <div id="profile-update-msg" class="text-success small"></div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="submit" class="btn btn-primary">Actualizar</button>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('clientProfileModal'));
+            modal.show();
+
+            // Manejar el submit del formulario
+            document.getElementById('client-profile-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const form = e.target;
+                const full_name = form.full_name.value.trim();
+                // El email no se puede modificar
+                try {
+                    await putClient(myClientId, { full_name });
+                    document.getElementById('profile-update-msg').textContent = 'Perfil actualizado con éxito.';
+                    // Cerrar el modal después de 2 segundos
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('clientProfileModal'));
+                        if (modal) modal.hide();
+                    }, 2000);
+                } catch (err) {
+                    document.getElementById('profile-update-msg').textContent = 'Error al actualizar el perfil.';
+                }
+            });
+
+            // Evento para resetear contraseña
+            document.getElementById('btn-reset-password').addEventListener('click', async () => {
+                const email = clientData[0].email;
+                if (!email) return alert('No se encontró el correo.');
+                try {
+                    await import('./api/authService.js').then(mod => mod.requestPasswordReset(email));
+                    alert('Se ha enviado un enlace de reseteo de contraseña a tu correo.');
+                } catch (err) {
+                    alert('No se pudo enviar el correo de reseteo.');
+                }
+            });
+        });
     }
 }
