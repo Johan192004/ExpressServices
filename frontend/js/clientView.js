@@ -10,6 +10,7 @@ import { getReviewsByServiceId, postReview } from "./api/reviews.js";
 // PUNTO DE ENTRADA PRINCIPAL
 // ===================================================================
 let myClientId = null; // El ID de cliente del usuario logueado
+let myUserId = null; // El ID de usuario del usuario logueado
 let currentFavorites = []; // Array para almacenar los IDs de servicios favoritos
 
 // Limpiar variable global al iniciar para evitar conflictos
@@ -32,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     myClientId = userProfile.id_client;
+    myUserId = userProfile.id_user; // Almacenar el ID de usuario para verificaciones
 
     // 2. Actualizar el enlace de perfil con el nombre del usuario
     updateProfileLink(userProfile.full_name);
@@ -58,35 +60,63 @@ document.addEventListener('DOMContentLoaded', async () => {
  * Actualiza el enlace de perfil en el header con el nombre del usuario.
  */
 function updateProfileLink(fullName) {
-    const profileLink = document.getElementById('profile-link');
-    if (profileLink && fullName) {
+    const profileDropdown = document.getElementById('profile-dropdown');
+    if (profileDropdown && fullName) {
         // Extraer solo el primer nombre para mostrar en el header
         const firstName = fullName.split(' ')[0];
-        profileLink.textContent = firstName;
-        profileLink.title = `Perfil de ${fullName}`; // Tooltip con el nombre completo
+        profileDropdown.innerHTML = `<i class="bi bi-person-circle me-1"></i> ${firstName}`;
+        profileDropdown.title = `Perfil de ${fullName}`; // Tooltip con el nombre completo
         
-        // Agregar estilos de botón manteniendo la coherencia visual
-        profileLink.className = 'btn btn-outline-light btn-sm text-white border-light';
-        profileLink.style.cssText = `
-            border-radius: 20px;
-            padding: 5px 12px;
+        // Agregar estilos: fondo azul, texto blanco, forma ovalada
+        // Usamos clases de Bootstrap para consistencia y luego sobreescribimos
+        profileDropdown.className = 'btn btn-primary btn-sm dropdown-toggle';
+        profileDropdown.style.cssText = `
+            border-radius: 999px; /* ovalado */
+            padding: 5px 14px;
             font-weight: 500;
-            transition: all 0.3s ease;
+            transition: all 0.18s ease;
             text-decoration: none;
+            background-color: #0d6efd; /* bootstrap primary */
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 2px 6px rgba(13,110,253,0.18);
         `;
         
-        // Efectos hover dinámicos
-        profileLink.addEventListener('mouseenter', function() {
-            this.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-            this.style.borderColor = '#fff';
+        // Quitar el borde circular del dropdown menu
+        const dropdownMenu = profileDropdown.nextElementSibling;
+        if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
+            dropdownMenu.style.cssText = `
+                border-radius: 8px !important;
+                border: 1px solid #dee2e6 !important;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                padding: 8px 0 !important;
+                overflow: visible !important;
+            `;
+            
+            // También aplicar estilos a los items del dropdown
+            const dropdownItems = dropdownMenu.querySelectorAll('.dropdown-item');
+            dropdownItems.forEach(item => {
+                item.style.cssText = `
+                    border-radius: 0 !important;
+                    padding: 8px 16px !important;
+                    margin: 0 !important;
+                    border: none !important;
+                `;
+            });
+        }
+
+        // Usar propiedades onmouseenter/onmouseleave para evitar múltiples listeners
+        profileDropdown.onmouseenter = function() {
+            this.style.backgroundColor = '#0b5ed7';
             this.style.transform = 'translateY(-1px)';
-        });
-        
-        profileLink.addEventListener('mouseleave', function() {
-            this.style.backgroundColor = 'transparent';
-            this.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+            this.style.boxShadow = '0 6px 14px rgba(13,110,253,0.22)';
+        };
+
+        profileDropdown.onmouseleave = function() {
+            this.style.backgroundColor = '#0d6efd';
             this.style.transform = 'translateY(0)';
-        });
+            this.style.boxShadow = '0 2px 6px rgba(13,110,253,0.18)';
+        };
     }
 }
 
@@ -228,6 +258,50 @@ async function showServiceDetailModal(serviceId) {
     try {
         const service = await getServiceById(serviceId);
         window.currentServiceData = service;
+        
+        // Verificar si el usuario logueado es el mismo que ofrece el servicio
+        console.log('=== DEBUG VERIFICACIÓN DE SERVICIO ===');
+        console.log('myUserId:', myUserId, 'tipo:', typeof myUserId);
+        console.log('Objeto service completo:', service);
+        console.log('service.id_user:', service.id_user, 'tipo:', typeof service.id_user);
+        console.log('service.provider_id:', service.provider_id, 'tipo:', typeof service.provider_id);
+        console.log('service.user_id:', service.user_id, 'tipo:', typeof service.user_id);
+        console.log('¿Son iguales?:', myUserId === service.id_user);
+        console.log('¿Ambos existen?:', myUserId && service.id_user);
+        console.log('=====================================');
+        
+        const isOwnService = myUserId && service.id_user && myUserId === service.id_user;
+        console.log('isOwnService final:', isOwnService);
+        
+        // Crear botones condicionalmente
+        let actionButtons = '';
+        if (isOwnService) {
+            console.log('Mostrando como PROPIO servicio');
+            // Si es su propio servicio, mostrar mensaje informativo
+            actionButtons = `
+                <div>
+                    <button type="button" class="btn btn-outline-dark me-2" id="btn-show-reviews">Ver reviews</button>
+                    <span class="text-muted small">
+                        <i class="bi bi-info-circle me-1"></i>Este es tu servicio
+                    </span>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>`;
+        } else {
+            console.log('Mostrando como servicio de OTRO');
+            // Si no es su servicio, mostrar botones normales
+            actionButtons = `
+                <div>
+                    <button type="button" class="btn btn-outline-dark me-2" id="btn-show-reviews">Ver reviews</button>
+                    <button type="button" class="btn btn-success" id="modal-propose-contract-btn">Contratar Horas</button>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-primary btn-glow" id="modal-contact-btn" data-service-id="${service.id_service}">Contactar</button>
+                </div>`;
+        }
+        
         const modalHtml = `
             <div class="modal fade" id="serviceDetailModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -253,11 +327,7 @@ async function showServiceDetailModal(serviceId) {
                             </div>
                         </div>
                         <div class="modal-footer border-0 justify-content-between">
-                            <div>
-                                <button type="button" class="btn btn-outline-dark me-2" id="btn-show-reviews">Ver reviews</button>
-                                <button type="button" class="btn btn-success" id="modal-propose-contract-btn">Contratar Horas</button>
-                            </div>
-                            <div><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button><button type="button" class="btn btn-primary btn-glow" id="modal-contact-btn" data-service-id="${service.id_service}">Contactar</button></div>
+                            ${actionButtons}
                         </div>
                     </div>
                 </div>
@@ -1145,6 +1215,14 @@ function setupPageEventListeners() {
             const servicesTitle = document.getElementById('h2Services');
             const servicesSection = document.getElementById('servicesSection');
 
+            // Remover clase 'active' de todas las categorías
+            document.querySelectorAll('.category-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Agregar clase 'active' a la categoría seleccionada
+            categoryCard.classList.add('active');
+
             if (servicesTitle) servicesTitle.textContent = `Servicios de ${categoryName}`;
             if (servicesSection) servicesSection.classList.remove('d-none');
             
@@ -1167,6 +1245,15 @@ function setupPageEventListeners() {
         }
         else if (contactBtn) {
             const serviceId = contactBtn.dataset.serviceId;
+            
+            // Verificar si es su propio servicio
+            const service = window.currentServiceData;
+            const isOwnService = myUserId && service && service.id_user && myUserId === service.id_user;
+            if (isOwnService) {
+                showModal('Acción no permitida', 'No puedes contactar tu propio servicio.', 'warning');
+                return;
+            }
+            
             const detailModal = bootstrap.Modal.getInstance(document.getElementById('serviceDetailModal'));
             if (detailModal) detailModal.hide();
             try {
@@ -1191,6 +1278,13 @@ function setupPageEventListeners() {
             const service = window.currentServiceData;
             if (!service) {
                 showModal('Error', 'No se encontró la información del servicio. Por favor, cierra y vuelve a abrir el modal.', 'error');
+                return;
+            }
+
+            // Verificar si es su propio servicio
+            const isOwnService = myUserId && service.id_user && myUserId === service.id_user;
+            if (isOwnService) {
+                showModal('Acción no permitida', 'No puedes contratar tu propio servicio.', 'warning');
                 return;
             }
 
@@ -1423,9 +1517,9 @@ function setupFavoritesButton() {
  * Configura el modal de perfil del cliente
  */
 function setupProfileModal() {
-    const profileLink = document.getElementById('profile-link');
-    if (profileLink) {
-        profileLink.addEventListener('click', async (e) => {
+    const editProfileBtn = document.getElementById('edit-profile-btn');
+    if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', async (e) => {
             e.preventDefault();
             // Eliminar modal anterior si existe
             let oldModal = document.getElementById('clientProfileModal');

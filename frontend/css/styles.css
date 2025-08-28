@@ -124,6 +124,25 @@ body {
     margin-bottom: 0;
 }
 
+/* Estilos para categoría activa/seleccionada */
+.category-card.active {
+    background: linear-gradient(45deg, #0d6efd, #4364F7) !important;
+    color: white !important;
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3) !important;
+    border-color: #0d6efd !important;
+}
+
+.category-card.active .icon-wrapper {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+.category-card.active p {
+    color: white !important;
+    font-weight: 700 !important;
+}
+
 
 /* ======== FEATURED SERVICES CARD ======== */
 .service-card {
@@ -245,6 +264,26 @@ body {
     color: var(--primary-color);
 }
 
+/* ======== DROPDOWN PERFIL ======== */
+/* Fix para dropdown del perfil - quitar bordes circulares */
+#profile-dropdown + .dropdown-menu {
+    border-radius: 8px !important;
+    border: 1px solid #dee2e6 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    padding: 8px 0 !important;
+}
+
+#profile-dropdown + .dropdown-menu .dropdown-item {
+    border-radius: 0 !important;
+    padding: 8px 16px !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+#profile-dropdown + .dropdown-menu .dropdown-divider {
+    margin: 4px 0 !important;
+}
+
 
 #switch-mode-btn:hover {
     background: linear-gradient(45deg, var(--primary-color), #4364F7);
@@ -253,28 +292,7 @@ body {
     box-shadow: 0 4px 10px rgba(0, 82, 212, 0.3);
 }
 
-#logout-btn {
-    background-color: rgba(220, 53, 69, 0.1); 
-    color: #dc3545; 
-    border: 1px solid rgba(220, 53, 69, 0.2);
-    border-radius: 50%; 
-    width: 45px;
-    height: 45px;
-    font-size: 1.1rem;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
-
-#logout-btn:hover {
-    background-color: #dc3545; 
-    color: #fff; 
-    border-color: #dc3545;
-    transform: scale(1.1); 
-    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
-}
+/* Estilo removido para #logout-btn ya que ahora es un dropdown-item */
 
 /* ======== ESTILOS PARA EL CHAT MODAL ======== */
 .chat-bubble {

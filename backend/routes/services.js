@@ -8,7 +8,7 @@ router.get("/", async (req, res) => {
         // CAMBIO CLAVE: Ahora esperamos 'id_category' en lugar de 'category'
         const { id_category, experience_years, hour_price } = req.query;
 
-        let query = `SELECT u.personal_picture, u.full_name AS provider_name, s.id_service, s.name, s.description, s.hour_price, s.creation_date, s.experience_years, u.email, u.phone_number 
+        let query = `SELECT u.personal_picture, u.full_name AS provider_name, s.id_service, s.name, s.description, s.hour_price, s.creation_date, s.experience_years, u.email, u.phone_number, u.id_user
                      FROM services s 
                      INNER JOIN providers p ON s.id_provider=p.id_provider 
                      INNER JOIN users u ON p.id_user=u.id_user 
@@ -58,7 +58,7 @@ router.get("/my/:id_provider", async (req, res) => {
 router.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const query = `SELECT s.*, u.full_name AS provider_name, u.personal_picture, u.bio, c.title as category_title
+        const query = `SELECT s.*, u.full_name AS provider_name, u.personal_picture, u.bio, c.title as category_title, u.id_user
                        FROM services s
                        JOIN providers p ON s.id_provider = p.id_provider
                        JOIN users u ON p.id_user = u.id_user
