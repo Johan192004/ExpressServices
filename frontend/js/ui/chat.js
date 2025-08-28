@@ -77,6 +77,7 @@ function appendMessage(msg, currentUserId) {
     const isSender = msg.sender_id === currentUserId;
     const messageElement = document.createElement('div');
     messageElement.className = `chat-bubble ${isSender ? 'sent' : 'received'}`;
+    messageElement.dataset.messageId = msg.id_message; // Agregar ID para tracking
     messageElement.innerHTML = `
         <div class="message-content">${msg.content}</div>
         <div class="message-time">${new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
@@ -102,9 +103,18 @@ function setupChatFormListener() {
             const token = localStorage.getItem('token');
             const payload = JSON.parse(atob(token.split('.')[1]));
             appendMessage(newMessage, payload.user.id);
-            // Actualizar el último ID de mensaje
-            lastMessageId = newMessage.id_message;
+            
+            // NO actualizar lastMessageId aquí para permitir que el polling 
+            // detecte tanto nuestro mensaje como cualquier mensaje nuevo del otro usuario
             messageInput.value = '';
+            
+            // Forzar una verificación inmediata de mensajes nuevos
+            setTimeout(() => {
+                if (currentConversationId) {
+                    checkForNewMessages(currentConversationId);
+                }
+            }, 1000); // Verificar después de 1 segundo
+            
         } catch (error) {
             alert(`Error al enviar mensaje: ${error.message}`);
         } finally {
@@ -163,6 +173,11 @@ async function checkForNewMessages(conversationId) {
             return;
         }
         
+        // Obtener todos los IDs de mensajes que ya están en el DOM para evitar duplicados
+        const existingMessageIds = Array.from(document.querySelectorAll('.chat-bubble')).map(bubble => {
+            return bubble.dataset.messageId;
+        }).filter(id => id); // Filtrar IDs válidos
+        
         // Encontrar mensajes nuevos (posteriores al último que tenemos)
         const lastMessageIndex = allMessages.findIndex(msg => msg.id_message === lastMessageId);
         
@@ -174,8 +189,10 @@ async function checkForNewMessages(conversationId) {
             return;
         }
         
-        // Obtener solo los mensajes nuevos
-        const newMessages = allMessages.slice(lastMessageIndex + 1);
+        // Obtener mensajes nuevos y filtrar los que ya están en el DOM
+        const newMessages = allMessages.slice(lastMessageIndex + 1).filter(msg => {
+            return !existingMessageIds.includes(msg.id_message.toString());
+        });
         
         if (newMessages.length > 0) {
             console.log(`📨 ${newMessages.length} nuevo(s) mensaje(s) recibido(s)`);
@@ -189,7 +206,7 @@ async function checkForNewMessages(conversationId) {
                 appendMessage(msg, currentUserId);
             });
             
-            // Actualizar el último ID de mensaje
+            // Actualizar el último ID de mensaje al más reciente de todos los mensajes
             lastMessageId = allMessages[allMessages.length - 1].id_message;
         }
     } catch (error) {
