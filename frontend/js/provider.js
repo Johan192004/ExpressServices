@@ -173,6 +173,38 @@ function showConfirmModal(title, message, onConfirm, onCancel = null) {
     });
 }
 
+// ===================================================================
+// FUNCIONES DE PERFIL Y NAVEGACIÓN
+// ===================================================================
+
+/**
+ * Actualiza el enlace de perfil en el header con el nombre del usuario.
+ */
+function updateProfileLink(fullName) {
+    const profileDropdown = document.getElementById('profile-dropdown');
+    if (profileDropdown && fullName) {
+        // Extraer solo el primer nombre para mostrar en el header
+        const firstName = fullName.split(' ')[0];
+        profileDropdown.innerHTML = `<i class="bi bi-person-circle me-1"></i> ${firstName}`;
+        profileDropdown.title = `Perfil de ${fullName}`; // Tooltip con el nombre completo
+        
+        // Agregar estilos: fondo azul, texto blanco, forma ovalada
+        // Usamos clases de Bootstrap para consistencia y luego sobreescribimos
+        profileDropdown.className = 'btn btn-primary btn-sm dropdown-toggle';
+        profileDropdown.style.cssText = `
+            border-radius: 999px; /* ovalado */
+            padding: 5px 14px;
+            font-weight: 500;
+            transition: all 0.18s ease;
+            text-decoration: none;
+            background-color: #0d6efd; /* bootstrap primary */
+            color: #ffffff;
+            border: none;
+            box-shadow: 0 2px 6px rgba(13,110,253,0.18);
+        `;
+    }
+}
+
 // PUNTO DE ENTRADA PRINCIPAL 
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -186,7 +218,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         console.log(userProfile)
         myProviderId = userProfile.id_provider;
-        await main();
+        await main(userProfile);
     } catch (error) {
         console.error("Error de autenticación:", error);
         localStorage.removeItem('token');
@@ -195,7 +227,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 //Función principal que orquesta la carga de la página 
-async function main() {
+async function main(userProfile) {
+    // Actualizar el enlace de perfil con el nombre del usuario
+    updateProfileLink(userProfile.full_name);
+    
     await loadAndRenderContracts();
     await loadAndRenderConversations();
     await loadCategoriesIntoSelect();
@@ -672,9 +707,10 @@ function setupEventListeners() {
     });
 }
 
-const profileLink = document.getElementById('profile-link');
-if (profileLink) {
-    profileLink.addEventListener('click', async (e) => {
+// Event listeners para el dropdown del perfil
+const editProfileBtn = document.getElementById('edit-profile-btn');
+if (editProfileBtn) {
+    editProfileBtn.addEventListener('click', async (e) => {
         e.preventDefault();
         // Eliminar modal anterior si existe
         let oldModal = document.getElementById('clientProfileModal');
@@ -780,6 +816,16 @@ if (profileLink) {
                 showModal('Error', 'No se pudo enviar el correo de reseteo.', 'error');
             }
         });
+    });
+}
+
+// Event listener para el botón de logout
+const logoutBtn = document.getElementById('logout-btn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.removeItem('token');
+        window.location.href = '/frontend/index.html';
     });
 }
 

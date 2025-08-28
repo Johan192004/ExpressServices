@@ -4,6 +4,80 @@ import { startConversation, getServiceById } from '../api/authService.js';
 import { openChatModal } from '../ui/chat.js';
 
 // ===================================================================
+// FUNCIONES DE MANEJO DE IMÁGENES CON AVATARES DE RESPALDO
+// ===================================================================
+
+/**
+ * Genera un avatar SVG con las iniciales del nombre completo
+ * @param {string} fullName - Nombre completo del proveedor
+ * @param {number} size - Tamaño del avatar en píxeles (por defecto 60)
+ * @returns {string} - URL de datos SVG
+ */
+function generateInitialsAvatar(fullName, size = 60) {
+    // Obtener las iniciales del nombre
+    const initials = fullName
+        .split(' ')
+        .filter(name => name.length > 0)
+        .map(name => name.charAt(0).toUpperCase())
+        .slice(0, 2) // Solo las primeras 2 iniciales
+        .join('');
+    
+    // Colores de fondo aleatorios pero consistentes basados en el nombre
+    const colors = [
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+        '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+    ];
+    
+    // Generar un color consistente basado en el hash del nombre
+    let hash = 0;
+    for (let i = 0; i < fullName.length; i++) {
+        hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colorIndex = Math.abs(hash) % colors.length;
+    const backgroundColor = colors[colorIndex];
+    
+    // Crear el SVG
+    const svg = `
+        <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${backgroundColor}"/>
+            <text x="${size/2}" y="${size/2}" font-family="Arial, sans-serif" font-size="${size/3}" font-weight="bold" 
+                  fill="white" text-anchor="middle" dominant-baseline="central">${initials}</text>
+        </svg>
+    `;
+    
+    // Convertir a URL de datos
+    return `data:image/svg+xml;base64,${btoa(svg)}`;
+}
+
+/**
+ * Configura el manejo de imágenes con avatar inmediato y carga en segundo plano
+ * @param {HTMLImageElement} img - Elemento de imagen
+ * @param {string} providerName - Nombre del proveedor
+ * @param {string} originalSrc - URL original de la imagen
+ * @param {number} size - Tamaño del avatar
+ */
+function setupImageFallback(img, providerName, originalSrc, size = 60) {
+    // Mostrar inmediatamente el avatar de iniciales
+    const initialsAvatar = generateInitialsAvatar(providerName, size);
+    img.src = initialsAvatar;
+    
+    // Intentar cargar la imagen real en segundo plano
+    if (originalSrc && originalSrc !== 'null' && originalSrc.trim() !== '') {
+        const realImage = new Image();
+        realImage.onload = function() {
+            // Si la imagen real carga exitosamente, reemplazar el avatar
+            img.src = originalSrc;
+        };
+        realImage.onerror = function() {
+            // Si falla, mantener el avatar de iniciales (ya está configurado)
+            console.log(`Failed to load image for ${providerName}, using initials avatar`);
+        };
+        // Iniciar la carga de la imagen real
+        realImage.src = originalSrc;
+    }
+}
+
+// ===================================================================
 // LÓGICA DE MODALES ESPECÍFICOS
 // ===================================================================
 
@@ -67,7 +141,7 @@ async function showServiceDetailModal(serviceId) {
         modalBody.innerHTML = `
             <div class="row">
                 <div class="col-md-4 text-center">
-                    <img src="${service.personal_picture || 'default.png'}" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}">
+                    <img src="" class="img-fluid rounded-circle mb-3" style="width: 120px; height: 120px; object-fit: cover;" alt="${service.provider_name}" id="modal-provider-image">
                     <h5 class="fw-bold">${service.provider_name}</h5>
                     <p class="text-muted small">${service.bio || ''}</p>
                 </div>
@@ -84,6 +158,14 @@ async function showServiceDetailModal(serviceId) {
                 <button type="button" class="btn btn-primary btn-glow" id="modal-contact-btn" data-service-id="${service.id_service}">Contactar al Proveedor</button>
             </div>
         `;
+        
+        // Configurar la imagen del proveedor con fallback de avatar usando setTimeout para asegurar que el elemento esté en el DOM
+        setTimeout(() => {
+            const modalImg = document.getElementById('modal-provider-image');
+            if (modalImg) {
+                setupImageFallback(modalImg, service.provider_name, service.personal_picture, 120);
+            }
+        }, 50); // Pequeño delay para asegurar que el elemento esté disponible
     } catch (error) {
         modalBody.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
     }
