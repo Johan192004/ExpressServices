@@ -85,7 +85,7 @@ ADD COLUMN reset_token_expires DATETIME NULL;
 
 CREATE TABLE contracts (
     id_contract INT AUTO_INCREMENT PRIMARY KEY,
-    id_service INT NOT NULL,
+    id_service INT NULL,
     id_client INT NOT NULL,
     
     agreed_hours DECIMAL(5, 2) NOT NULL, -- Ej: 2.5 horas
@@ -97,7 +97,7 @@ CREATE TABLE contracts (
     offer_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP, -- Fecha en que el cliente envía la oferta
     response_date TIMESTAMP NULL, -- Fecha en que el proveedor responde
     
-    FOREIGN KEY (id_service) REFERENCES services(id_service),
+    FOREIGN KEY (id_service) REFERENCES services(id_service) ON DELETE SET NULL,
     FOREIGN KEY (id_client) REFERENCES clients(id_client)
 );
 
@@ -111,13 +111,13 @@ CREATE TABLE conversations (
     id_conversation INT AUTO_INCREMENT PRIMARY KEY,
     id_client INT NOT NULL,
     id_provider INT NOT NULL,
-    id_service INT NOT NULL,
+    id_service INT NULL,
     
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (id_client) REFERENCES clients(id_client),
     FOREIGN KEY (id_provider) REFERENCES providers(id_provider),
-    FOREIGN KEY (id_service) REFERENCES services(id_service),
+    FOREIGN KEY (id_service) REFERENCES services(id_service) ON DELETE SET NULL,
     
     -- Creamos un índice único para que no se pueda crear más de una conversación
     -- para el mismo trío de cliente, proveedor y servicio.

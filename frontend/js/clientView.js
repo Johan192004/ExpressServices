@@ -18,15 +18,17 @@ window.currentServiceData = null;
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificamos si el usuario tiene permiso para estar aquí
     if (!localStorage.getItem('token')) {
-        alert('Debes iniciar sesión para acceder a esta página.');
-        window.location.href = '/frontend/index.html';
+        showModal('Acceso Denegado', 'Debes iniciar sesión para acceder a esta página.', 'warning', () => {
+            window.location.href = '/frontend/index.html';
+        });
         return;
     }
 
     const userProfile = await getUserProfile();
     if (!userProfile.id_client) {
-        alert('Acceso denegado. Debes tener un perfil de cliente.');
-        window.location.href = '/frontend/index.html';
+        showModal('Acceso Denegado', 'Debes tener un perfil de cliente para acceder a esta sección.', 'error', () => {
+            window.location.href = '/frontend/index.html';
+        });
         return;
     }
     console.log(userProfile)
@@ -296,12 +298,19 @@ async function showServiceDetailModal(serviceId) {
         // Limpiar backdrop cuando se cierre este modal
         document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function() {
             cleanupModalBackdrops();
-            // Limpiar la variable global para evitar conflictos
-            window.currentServiceData = null;
+            // Solo limpiar la variable global si el modal se está cerrando definitivamente
+            // (no temporalmente para mostrar otro modal)
+            setTimeout(() => {
+                // Si después de 100ms no hay otros modales abiertos, entonces limpiar
+                const openModals = document.querySelectorAll('.modal.show');
+                if (openModals.length === 0) {
+                    window.currentServiceData = null;
+                }
+            }, 100);
         });
         
     } catch (error) {
-        alert('Error al cargar detalles del servicio.');
+        showModal('Error', 'Error al cargar detalles del servicio.', 'error');
     }
 }
 
@@ -311,7 +320,7 @@ async function showServiceDetailModal(serviceId) {
  */
 async function toggleFavorite(serviceId) {
     if (!myClientId) {
-        alert('Debes iniciar sesión para agregar favoritos.');
+        showModal('Iniciar Sesión', 'Debes iniciar sesión para agregar favoritos.', 'warning');
         return;
     }
 
@@ -345,7 +354,7 @@ async function toggleFavorite(serviceId) {
         
     } catch (error) {
         console.error('Error al actualizar favoritos:', error);
-        alert('Error al actualizar favoritos. Inténtalo de nuevo.');
+        showModal('Error', 'Error al actualizar favoritos. Inténtalo de nuevo.', 'error');
     }
 }
 
@@ -354,7 +363,7 @@ async function toggleFavorite(serviceId) {
  */
 async function showFavoriteServices() {
     if (!myClientId) {
-        alert('No se encontró tu id de cliente.');
+        showModal('Error', 'No se encontró tu id de cliente.', 'error');
         return;
     }
     
@@ -365,7 +374,7 @@ async function showFavoriteServices() {
     try {
         favorites = await getFavoritesById(myClientId);
     } catch (err) {
-        alert('No se pudieron cargar tus favoritos.');
+        showModal('Error', 'No se pudieron cargar tus favoritos.', 'error');
         return;
     }
     
@@ -535,7 +544,7 @@ async function showReviewsModal(serviceId) {
         
     } catch (error) {
         console.error('Error al cargar reviews:', error);
-        alert('Error al cargar las reviews del servicio.');
+        showModal('Error', 'Error al cargar las reviews del servicio.', 'error');
         
         // Si hay error, también restaurar el modal de detalles inmediatamente
         const serviceDetailModal = document.getElementById('serviceDetailModal');
@@ -557,6 +566,249 @@ function cleanupModalBackdrops() {
     document.body.classList.remove('modal-open');
     document.body.style.removeProperty('padding-right');
     document.body.style.removeProperty('overflow');
+}
+
+/**
+ * Muestra un modal personalizado en lugar de alert()
+ * @param {string} title - Título del modal
+ * @param {string} message - Mensaje a mostrar
+ * @param {string} type - Tipo de modal: 'success', 'error', 'warning', 'info'
+ * @param {function} onConfirm - Función a ejecutar al hacer clic en "Aceptar" (opcional)
+ */
+function showModal(title, message, type = 'info', onConfirm = null) {
+    // Limpiar modal anterior si existe
+    const existingModal = document.getElementById('customModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Definir colores y iconos según el tipo
+    const modalConfig = {
+        success: {
+            headerClass: 'bg-success text-white',
+            icon: 'bi-check-circle-fill',
+            iconColor: 'text-success',
+            buttonClass: 'btn-success'
+        },
+        error: {
+            headerClass: 'bg-danger text-white',
+            icon: 'bi-exclamation-triangle-fill',
+            iconColor: 'text-danger',
+            buttonClass: 'btn-danger'
+        },
+        warning: {
+            headerClass: 'bg-warning text-dark',
+            icon: 'bi-exclamation-triangle-fill',
+            iconColor: 'text-warning',
+            buttonClass: 'btn-warning'
+        },
+        info: {
+            headerClass: 'bg-primary text-white',
+            icon: 'bi-info-circle-fill',
+            iconColor: 'text-primary',
+            buttonClass: 'btn-primary'
+        }
+    };
+    
+    const config = modalConfig[type] || modalConfig.info;
+    
+    const modalHtml = `
+        <div class="modal fade" id="customModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header ${config.headerClass}">
+                        <h5 class="modal-title">
+                            <i class="bi ${config.icon} me-2"></i>
+                            ${title}
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi ${config.icon} ${config.iconColor}" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
+                    </div>
+                    <div class="modal-footer justify-content-center border-0">
+                        <button type="button" class="btn ${config.buttonClass} px-4" id="customModalConfirm">Aceptar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('customModal'));
+    modal.show();
+    
+    // Manejar el botón de confirmación
+    document.getElementById('customModalConfirm').addEventListener('click', () => {
+        modal.hide();
+        if (onConfirm && typeof onConfirm === 'function') {
+            onConfirm();
+        }
+    });
+    
+    // Limpiar el modal del DOM cuando se oculte
+    document.getElementById('customModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        cleanupModalBackdrops();
+    });
+}
+
+/**
+ * Muestra un modal de confirmación en lugar de confirm()
+ * @param {string} title - Título del modal
+ * @param {string} message - Mensaje de confirmación
+ * @param {function} onConfirm - Función a ejecutar si confirma
+ * @param {function} onCancel - Función a ejecutar si cancela (opcional)
+ */
+function showConfirmModal(title, message, onConfirm, onCancel = null) {
+    // Limpiar modal anterior si existe
+    const existingModal = document.getElementById('confirmModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modalHtml = `
+        <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="bi bi-question-circle-fill me-2"></i>
+                            ${title}
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi bi-question-circle-fill text-warning" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
+                    </div>
+                    <div class="modal-footer justify-content-center border-0">
+                        <button type="button" class="btn btn-secondary px-4 me-2" id="confirmModalCancel">Cancelar</button>
+                        <button type="button" class="btn btn-warning px-4" id="confirmModalConfirm">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+    
+    // Manejar botones
+    document.getElementById('confirmModalConfirm').addEventListener('click', () => {
+        modal.hide();
+        if (onConfirm && typeof onConfirm === 'function') {
+            onConfirm();
+        }
+    });
+    
+    document.getElementById('confirmModalCancel').addEventListener('click', () => {
+        modal.hide();
+        if (onCancel && typeof onCancel === 'function') {
+            onCancel();
+        }
+    });
+    
+    // Limpiar el modal del DOM cuando se oculte
+    document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        cleanupModalBackdrops();
+    });
+}
+
+/**
+ * Muestra un modal de entrada de datos en lugar de prompt()
+ * @param {string} title - Título del modal
+ * @param {string} message - Mensaje de instrucción
+ * @param {string} defaultValue - Valor por defecto del input
+ * @param {string} inputType - Tipo de input: 'text', 'number', etc.
+ * @param {function} onConfirm - Función a ejecutar con el valor ingresado
+ * @param {function} onCancel - Función a ejecutar si cancela (opcional)
+ */
+function showPromptModal(title, message, defaultValue = '', inputType = 'text', onConfirm, onCancel = null) {
+    // Limpiar modal anterior si existe
+    const existingModal = document.getElementById('promptModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modalHtml = `
+        <div class="modal fade" id="promptModal" tabindex="-1" data-bs-backdrop="false" data-bs-keyboard="true" style="z-index: 1070;">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-pencil-square me-2"></i>
+                            ${title}
+                        </h5>
+                    </div>
+                    <div class="modal-body py-4">
+                        <div class="text-center mb-3">
+                            <i class="bi bi-pencil-square text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <p class="mb-3 text-center">${message}</p>
+                        <div class="form-group">
+                            <input type="${inputType}" 
+                                   class="form-control form-control-lg text-center" 
+                                   id="promptInput" 
+                                   value="${defaultValue}"
+                                   placeholder="Ingresa el valor..."
+                                   ${inputType === 'number' ? 'min="0" step="0.1"' : ''}>
+                        </div>
+                    </div>
+                    <div class="modal-footer justify-content-center border-0">
+                        <button type="button" class="btn btn-secondary px-4 me-2" id="promptModalCancel">Cancelar</button>
+                        <button type="button" class="btn btn-primary px-4" id="promptModalConfirm">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('promptModal'));
+    const input = document.getElementById('promptInput');
+    
+    
+    modal.show();
+    
+    // Enfocar y seleccionar el input después de que se muestre el modal
+    document.getElementById('promptModal').addEventListener('shown.bs.modal', function() {
+        input.focus();
+        input.select();
+    });
+    
+    // Manejar botones
+    document.getElementById('promptModalConfirm').addEventListener('click', () => {
+        const value = input.value.trim();
+        modal.hide();
+        if (onConfirm && typeof onConfirm === 'function') {
+            onConfirm(value);
+        }
+    });
+    
+    document.getElementById('promptModalCancel').addEventListener('click', () => {
+        modal.hide();
+        if (onCancel && typeof onCancel === 'function') {
+            onCancel();
+        }
+    });
+    
+    // Permitir confirmar con Enter
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            document.getElementById('promptModalConfirm').click();
+        }
+    });
+    
+    // Limpiar el modal del DOM cuando se oculte
+    document.getElementById('promptModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        // NO llamar cleanupModalBackdrops() aquí para no interferir con el modal de detalles
+    });
 }
 
 /**
@@ -688,7 +940,7 @@ function setupPageEventListeners() {
                  if (error.message.includes('iniciar sesión') || error.message.includes('Sesión expirada')) {
                     new bootstrap.Modal(document.getElementById('authActionModal')).show();
                 } else {
-                    alert(`Error: ${error.message}`);
+                    showModal('Error', error.message, 'error');
                 }
             }
         }
@@ -700,37 +952,81 @@ function setupPageEventListeners() {
         else if (proposeContractBtn) {
             const service = window.currentServiceData;
             if (!service) {
-                alert('Error: No se encontró la información del servicio. Por favor, cierra y vuelve a abrir el modal.');
+                showModal('Error', 'No se encontró la información del servicio. Por favor, cierra y vuelve a abrir el modal.', 'error');
                 return;
             }
 
-            const hours = prompt(`¿Cuántas horas del servicio "${service.name}" deseas contratar?`, "1");
-            
-            if (hours === null || isNaN(hours) || parseFloat(hours) <= 0) {
-                alert('Por favor, ingresa un número de horas válido.');
-                return;
-            }
+            // NO ocultar el modal de detalles, simplemente mostrar el prompt encima
+            showPromptModal(
+                'Contratar Servicio',
+                `¿Cuántas horas del servicio "${service.name}" deseas contratar?`,
+                '1',
+                'number',
+                (hours) => {
+                    if (!hours || isNaN(hours) || parseFloat(hours) <= 0) {
+                        showModal('Datos Inválidos', 'Por favor, ingresa un número de horas válido.', 'warning');
+                        return;
+                    }
 
-            const detailModalEl = document.getElementById('serviceDetailModal');
-            const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                    // Ahora sí ocultar el modal de detalles para mostrar el resumen
+                    const detailModalEl = document.getElementById('serviceDetailModal');
+                    const detailModal = bootstrap.Modal.getInstance(detailModalEl);
+                    
+                    if (detailModal) {
+                        // Esperar a que el modal se oculte completamente antes de mostrar el resumen
+                        detailModalEl.addEventListener('hidden.bs.modal', function showSummaryAfterHide() {
+                            // Proceder con la confirmación del contrato
+                            const agreed_hours = parseFloat(hours);
+                            const total_price = service.hour_price * agreed_hours;
 
-            detailModalEl.addEventListener('hidden.bs.modal', () => {
-                const agreed_hours = parseFloat(hours);
-                const total_price = service.hour_price * agreed_hours;
+                            document.getElementById('summary-service-name').textContent = service.name;
+                            document.getElementById('summary-provider-name').textContent = service.provider_name;
+                            document.getElementById('summary-hours').textContent = agreed_hours;
+                            document.getElementById('summary-total-price').textContent = `$${total_price.toLocaleString('es-CO')}`;
+                            
+                            const confirmBtn = document.getElementById('confirm-contract-btn');
+                            confirmBtn.dataset.serviceId = service.id_service;
+                            confirmBtn.dataset.agreedHours = agreed_hours;
 
-                document.getElementById('summary-service-name').textContent = service.name;
-                document.getElementById('summary-provider-name').textContent = service.provider_name;
-                document.getElementById('summary-hours').textContent = agreed_hours;
-                document.getElementById('summary-total-price').textContent = `$${total_price.toLocaleString('es-CO')}`;
-                
-                const confirmBtn = document.getElementById('confirm-contract-btn');
-                confirmBtn.dataset.serviceId = service.id_service;
-                confirmBtn.dataset.agreedHours = agreed_hours;
+                            // Crear el modal de resumen con configuración explícita del backdrop
+                            const summaryModal = new bootstrap.Modal(document.getElementById('contractSummaryModal'), {
+                                backdrop: true,
+                                keyboard: true,
+                                focus: true
+                            });
+                            summaryModal.show();
+                            
+                            // Remover este listener para evitar múltiples ejecuciones
+                            detailModalEl.removeEventListener('hidden.bs.modal', showSummaryAfterHide);
+                        });
+                        
+                        detailModal.hide();
+                    } else {
+                        // Si no hay modal de detalles, mostrar directamente el resumen
+                        const agreed_hours = parseFloat(hours);
+                        const total_price = service.hour_price * agreed_hours;
 
-                new bootstrap.Modal(document.getElementById('contractSummaryModal')).show();
-            }, { once: true });
+                        document.getElementById('summary-service-name').textContent = service.name;
+                        document.getElementById('summary-provider-name').textContent = service.provider_name;
+                        document.getElementById('summary-hours').textContent = agreed_hours;
+                        document.getElementById('summary-total-price').textContent = `$${total_price.toLocaleString('es-CO')}`;
+                        
+                        const confirmBtn = document.getElementById('confirm-contract-btn');
+                        confirmBtn.dataset.serviceId = service.id_service;
+                        confirmBtn.dataset.agreedHours = agreed_hours;
 
-            if (detailModal) detailModal.hide();
+                        const summaryModal = new bootstrap.Modal(document.getElementById('contractSummaryModal'), {
+                            backdrop: true,
+                            keyboard: true,
+                            focus: true
+                        });
+                        summaryModal.show();
+                    }
+                },
+                () => {
+                    // Si se cancela, no hacer nada - el modal de detalles sigue abierto
+                }
+            );
         }
         else if (confirmContractBtn) {
             const serviceId = confirmContractBtn.dataset.serviceId;
@@ -746,13 +1042,13 @@ function setupPageEventListeners() {
                 if (summaryModal) summaryModal.hide();
 
                 const providerName = document.getElementById('summary-provider-name').textContent;
-                alert(`${result.message}\nHas propuesto contratar ${agreedHours} horas con ${providerName}.`);
+                showModal('¡Éxito!', `${result.message}\nHas propuesto contratar ${agreedHours} horas con ${providerName}.`, 'success');
 
                 // Recargar automáticamente la lista de contratos
                 loadAndRenderClientContracts();
 
             } catch (error) {
-                alert(`Error al enviar la oferta: ${error.message}`);
+                showModal('Error', `Error al enviar la oferta: ${error.message}`, 'error');
             } finally {
                 confirmContractBtn.disabled = false;
                 confirmContractBtn.innerHTML = 'Confirmar y Enviar Oferta';
@@ -760,29 +1056,35 @@ function setupPageEventListeners() {
         }
                 else if (deleteContractBtn) {
             const contractId = deleteContractBtn.dataset.contractId;
-            const confirmed = confirm('¿Estás seguro de que deseas eliminar este contrato de tu historial?');
-            if (confirmed) {
-                try {
-                    await deleteContract(contractId);
-                    alert('Contrato eliminado con éxito.');
-                    loadAndRenderClientContracts(); // Recargamos la lista
-                } catch (error) {
-                    alert(`Error al eliminar: ${error.message}`);
+            showConfirmModal(
+                'Eliminar Contrato',
+                '¿Estás seguro de que deseas eliminar este contrato de tu historial?',
+                async () => {
+                    try {
+                        await deleteContract(contractId);
+                        showModal('¡Éxito!', 'Contrato eliminado con éxito.', 'success');
+                        loadAndRenderClientContracts(); // Recargamos la lista
+                    } catch (error) {
+                        showModal('Error', `Error al eliminar: ${error.message}`, 'error');
+                    }
                 }
-            }
+            );
         }
         else if (completeContractBtn) {
             const contractId = completeContractBtn.dataset.contractId;
-            const confirmed = confirm('¿Confirmas que el servicio ha sido completado a tu satisfacción?');
-            if (confirmed) {
-                try {
-                    await completeContract(contractId);
-                    alert('Has confirmado la finalización del servicio.');
-                    loadAndRenderClientContracts(); // Recargamos la lista
-                } catch (error) {
-                    alert(`Error al confirmar: ${error.message}`);
+            showConfirmModal(
+                'Confirmar Finalización',
+                '¿Confirmas que el servicio ha sido completado a tu satisfacción?',
+                async () => {
+                    try {
+                        await completeContract(contractId);
+                        showModal('¡Éxito!', 'Has confirmado la finalización del servicio.', 'success');
+                        loadAndRenderClientContracts(); // Recargamos la lista
+                    } catch (error) {
+                        showModal('Error', `Error al confirmar: ${error.message}`, 'error');
+                    }
                 }
-            }
+            );
         }
     });
 
@@ -885,7 +1187,7 @@ function setupProfileModal() {
 
             // Obtener id_client
             if (!myClientId) {
-                alert('No se encontró tu id de cliente.');
+                showModal('Error', 'No se encontró tu id de cliente.', 'error');
                 return;
             }
 
@@ -894,7 +1196,7 @@ function setupProfileModal() {
             try {
                 clientData = await getClientById(myClientId);
             } catch (err) {
-                alert('No se pudo cargar tu información de perfil.');
+                showModal('Error', 'No se pudo cargar tu información de perfil.', 'error');
                 return;
             }
 
@@ -957,12 +1259,15 @@ function setupProfileModal() {
             // Evento para resetear contraseña
             document.getElementById('btn-reset-password').addEventListener('click', async () => {
                 const email = clientData[0].email;
-                if (!email) return alert('No se encontró el correo.');
+                if (!email) {
+                    showModal('Error', 'No se encontró el correo.', 'error');
+                    return;
+                }
                 try {
                     await import('./api/authService.js').then(mod => mod.requestPasswordReset(email));
-                    alert('Se ha enviado un enlace de reseteo de contraseña a tu correo.');
+                    showModal('¡Éxito!', 'Se ha enviado un enlace de reseteo de contraseña a tu correo.', 'success');
                 } catch (err) {
-                    alert('No se pudo enviar el correo de reseteo.');
+                    showModal('Error', 'No se pudo enviar el correo de reseteo.', 'error');
                 }
             });
         });

@@ -6,14 +6,182 @@ import { openChatModal } from './ui/chat.js';
 
 let myProviderId = null;
 
+// ===================================================================
+// FUNCIONES DE MODALES PERSONALIZADOS
+// ===================================================================
+
+/**
+ * Función utilitaria para limpiar backdrops residuales de Bootstrap modals
+ */
+function cleanupModalBackdrops() {
+    // Remover todos los backdrops
+    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
+    
+    // Restaurar el estado del body
+    document.body.classList.remove('modal-open');
+    document.body.style.removeProperty('padding-right');
+    document.body.style.removeProperty('overflow');
+}
+
+/**
+ * Muestra un modal personalizado en lugar de alert()
+ * @param {string} title - Título del modal
+ * @param {string} message - Mensaje a mostrar
+ * @param {string} type - Tipo de modal: 'success', 'error', 'warning', 'info'
+ * @param {function} onConfirm - Función a ejecutar al hacer clic en "Aceptar" (opcional)
+ */
+function showModal(title, message, type = 'info', onConfirm = null) {
+    // Limpiar modal anterior si existe
+    const existingModal = document.getElementById('customModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Definir colores y iconos según el tipo
+    const modalConfig = {
+        success: {
+            headerClass: 'bg-success text-white',
+            icon: 'bi-check-circle-fill',
+            iconColor: 'text-success',
+            buttonClass: 'btn-success'
+        },
+        error: {
+            headerClass: 'bg-danger text-white',
+            icon: 'bi-exclamation-triangle-fill',
+            iconColor: 'text-danger',
+            buttonClass: 'btn-danger'
+        },
+        warning: {
+            headerClass: 'bg-warning text-dark',
+            icon: 'bi-exclamation-triangle-fill',
+            iconColor: 'text-warning',
+            buttonClass: 'btn-warning'
+        },
+        info: {
+            headerClass: 'bg-primary text-white',
+            icon: 'bi-info-circle-fill',
+            iconColor: 'text-primary',
+            buttonClass: 'btn-primary'
+        }
+    };
+    
+    const config = modalConfig[type] || modalConfig.info;
+    
+    const modalHtml = `
+        <div class="modal fade" id="customModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header ${config.headerClass}">
+                        <h5 class="modal-title">
+                            <i class="bi ${config.icon} me-2"></i>
+                            ${title}
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi ${config.icon} ${config.iconColor}" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
+                    </div>
+                    <div class="modal-footer justify-content-center border-0">
+                        <button type="button" class="btn ${config.buttonClass} px-4" id="customModalConfirm">Aceptar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('customModal'));
+    modal.show();
+    
+    // Manejar el botón de confirmación
+    document.getElementById('customModalConfirm').addEventListener('click', () => {
+        modal.hide();
+        if (onConfirm && typeof onConfirm === 'function') {
+            onConfirm();
+        }
+    });
+    
+    // Limpiar el modal del DOM cuando se oculte
+    document.getElementById('customModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        cleanupModalBackdrops();
+    });
+}
+
+/**
+ * Muestra un modal de confirmación en lugar de confirm()
+ * @param {string} title - Título del modal
+ * @param {string} message - Mensaje de confirmación
+ * @param {function} onConfirm - Función a ejecutar si confirma
+ * @param {function} onCancel - Función a ejecutar si cancela (opcional)
+ */
+function showConfirmModal(title, message, onConfirm, onCancel = null) {
+    // Limpiar modal anterior si existe
+    const existingModal = document.getElementById('confirmModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modalHtml = `
+        <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title">
+                            <i class="bi bi-question-circle-fill me-2"></i>
+                            ${title}
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        <i class="bi bi-question-circle-fill text-warning" style="font-size: 3rem; margin-bottom: 1rem;"></i>
+                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
+                    </div>
+                    <div class="modal-footer justify-content-center border-0">
+                        <button type="button" class="btn btn-secondary px-4 me-2" id="confirmModalCancel">Cancelar</button>
+                        <button type="button" class="btn btn-warning px-4" id="confirmModalConfirm">Confirmar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
+    modal.show();
+    
+    // Manejar botones
+    document.getElementById('confirmModalConfirm').addEventListener('click', () => {
+        modal.hide();
+        if (onConfirm && typeof onConfirm === 'function') {
+            onConfirm();
+        }
+    });
+    
+    document.getElementById('confirmModalCancel').addEventListener('click', () => {
+        modal.hide();
+        if (onCancel && typeof onCancel === 'function') {
+            onCancel();
+        }
+    });
+    
+    // Limpiar el modal del DOM cuando se oculte
+    document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        cleanupModalBackdrops();
+    });
+}
+
 // PUNTO DE ENTRADA PRINCIPAL 
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const userProfile = await getUserProfile();
         if (!userProfile.id_provider) {
-            alert('Acceso denegado. Debes tener un perfil de proveedor.');
-            window.location.href = '/frontend/index.html';
+            showModal('Acceso Denegado', 'Debes tener un perfil de proveedor para acceder a esta sección.', 'error', () => {
+                window.location.href = '/frontend/index.html';
+            });
             return;
         }
         console.log(userProfile)
@@ -303,13 +471,13 @@ function setupEventListeners() {
             const id = data.id_service;
             try {
                 await updateService(id, data);
-                alert('Servicio actualizado con éxito.');
+                showModal('¡Éxito!', 'Servicio actualizado con éxito.', 'success');
                 const modalEl = document.getElementById('editServiceModal');
                 const bs = bootstrap.Modal.getInstance(modalEl);
                 if (bs) bs.hide();
                 loadMyServices();
             } catch (err) {
-                alert('Error al actualizar el servicio.');
+                showModal('Error', 'Error al actualizar el servicio.', 'error');
             }
         });
         // remove from DOM on hide to keep clean state
@@ -368,7 +536,7 @@ function setupEventListeners() {
             bsModal.show();
         } catch (err) {
             document.getElementById('loadingServiceOverlay')?.remove();
-            alert('No se pudo cargar la información del servicio.');
+            showModal('Error', 'No se pudo cargar la información del servicio.', 'error');
         }
     });
 
@@ -377,13 +545,19 @@ function setupEventListeners() {
         const btn = e.target.closest('.btn-delete-service');
         if (!btn) return;
         const serviceId = btn.dataset.serviceId;
-        if (confirm('¿Estás seguro de que quieres eliminar este servicio?')) {
-            try {
-                await deleteService(serviceId);
-                alert('Servicio eliminado.');
-                loadMyServices();
-            } catch (error) { alert(`Error al eliminar: ${error.message}`); }
-        }
+        showConfirmModal(
+            'Eliminar Servicio',
+            '¿Estás seguro de que quieres eliminar este servicio?',
+            async () => {
+                try {
+                    await deleteService(serviceId);
+                    showModal('¡Éxito!', 'Servicio eliminado con éxito.', 'success');
+                    loadMyServices();
+                } catch (error) {
+                    showModal('Error', `Error al eliminar: ${error.message}`, 'error');
+                }
+            }
+        );
     });    serviceForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const formData = new FormData(serviceForm);
@@ -392,15 +566,17 @@ function setupEventListeners() {
         try {
             if (serviceId) {
                 await updateService(serviceId, data);
-                alert('Servicio actualizado con éxito.');
+                showModal('¡Éxito!', 'Servicio actualizado con éxito.', 'success');
             } else {
                 data.id_provider = myProviderId;
                 await createService(data);
-                alert('Servicio creado con éxito.');
+                showModal('¡Éxito!', 'Servicio creado con éxito.', 'success');
             }
             serviceModal.hide();
             loadMyServices();
-        } catch (error) { alert(`Error al guardar: ${error.message}`); }
+        } catch (error) {
+            showModal('Error', `Error al guardar: ${error.message}`, 'error');
+        }
     });
     
     document.getElementById('conversations-container').addEventListener('click', async(e) => {
@@ -426,10 +602,10 @@ function setupEventListeners() {
             acceptContractBtn.textContent = '...';
             try {
                 const result = await respondToContract(contractId, 'accepted');
-                alert(result.message);
+                showModal('¡Éxito!', result.message, 'success');
                 loadAndRenderContracts(); // Recargamos la lista de contratos
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                showModal('Error', `Error: ${error.message}`, 'error');
                 acceptContractBtn.disabled = false;
                 acceptContractBtn.textContent = 'Aceptar';
             }
@@ -442,39 +618,45 @@ function setupEventListeners() {
             denyContractBtn.textContent = '...';
             try {
                 const result = await respondToContract(contractId, 'denied');
-                alert(result.message);
+                showModal('¡Éxito!', result.message, 'success');
                 loadAndRenderContracts(); // Recargamos la lista de contratos
             } catch (error) {
-                alert(`Error: ${error.message}`);
+                showModal('Error', `Error: ${error.message}`, 'error');
                 denyContractBtn.disabled = false;
                 denyContractBtn.textContent = 'Rechazar';
             }
         }
         else if (deleteContractBtn) {
         const contractId = deleteContractBtn.dataset.id;
-        const confirmed = confirm('¿Estás seguro de que deseas eliminar este contrato de tu historial?');
-        if (confirmed) {
-            try {
-                await deleteContract(contractId);
-                alert('Contrato eliminado con éxito.');
-                loadAndRenderContracts(); // Recargamos la lista
-            } catch (error) {
-                alert(`Error al eliminar: ${error.message}`);
+        showConfirmModal(
+            'Eliminar Contrato',
+            '¿Estás seguro de que deseas eliminar este contrato de tu historial?',
+            async () => {
+                try {
+                    await deleteContract(contractId);
+                    showModal('¡Éxito!', 'Contrato eliminado con éxito.', 'success');
+                    loadAndRenderContracts(); // Recargamos la lista
+                } catch (error) {
+                    showModal('Error', `Error al eliminar: ${error.message}`, 'error');
+                }
             }
-        }
+        );
     }
         else if (completeContractBtn) {
             const contractId = completeContractBtn.dataset.id;
-            const confirmed = confirm('¿Confirmas que has completado el servicio acordado?');
-            if (confirmed) {
-                try {
-                    await completeContract(contractId);
-                    alert('Has confirmado la finalización del servicio.');
-                    loadAndRenderContracts(); // Recargamos la lista
-                } catch (error) {
-                    alert(`Error al confirmar: ${error.message}`);
+            showConfirmModal(
+                'Confirmar Finalización',
+                '¿Confirmas que has completado el servicio acordado?',
+                async () => {
+                    try {
+                        await completeContract(contractId);
+                        showModal('¡Éxito!', 'Has confirmado la finalización del servicio.', 'success');
+                        loadAndRenderContracts(); // Recargamos la lista
+                    } catch (error) {
+                        showModal('Error', `Error al confirmar: ${error.message}`, 'error');
+                    }
                 }
-            }
+            );
         }
     });
 }
@@ -489,7 +671,7 @@ if (profileLink) {
 
         // Obtener id_client del sessionStorage
         if (!myProviderId) {
-            alert('No se encontró tu id de proveedor.');
+            showModal('Error', 'No se encontró tu id de proveedor.', 'error');
             return;
         }
 
@@ -498,7 +680,7 @@ if (profileLink) {
         try {
             providerData = await getProviderById(myProviderId);
         } catch (err) {
-            alert('No se pudo cargar tu información de perfil.');
+            showModal('Error', 'No se pudo cargar tu información de perfil.', 'error');
             return;
         }
         
@@ -576,12 +758,15 @@ if (profileLink) {
         // Evento para resetear contraseña
         document.getElementById('btn-reset-password').addEventListener('click', async () => {
             const email = providerData[0].email;
-            if (!email) return alert('No se encontró el correo.');
+            if (!email) {
+                showModal('Error', 'No se encontró el correo electrónico.', 'error');
+                return;
+            }
             try {
                 await import('./api/authService.js').then(mod => mod.requestPasswordReset(email));
-                alert('Se ha enviado un enlace de reseteo de contraseña a tu correo.');
+                showModal('¡Éxito!', 'Se ha enviado un enlace de reseteo de contraseña a tu correo.', 'success');
             } catch (err) {
-                alert('No se pudo enviar el correo de reseteo.');
+                showModal('Error', 'No se pudo enviar el correo de reseteo.', 'error');
             }
         });
     });
