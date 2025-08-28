@@ -44,7 +44,7 @@ async function loadAndRenderContracts() {
     container.innerHTML = '<p class="text-muted">Cargando solicitudes...</p>';
 
     try {
-        const contracts = await getContracts();
+        const contracts = await getContracts({ selected_rol: "provider" });
         if (contracts.length === 0) {
             container.innerHTML = '<p class="text-muted">No tienes solicitudes de contrato.</p>';
             return;
