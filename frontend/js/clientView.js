@@ -29,12 +29,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.location.href = '/frontend/index.html';
         return;
     }
+    console.log(userProfile)
     myClientId = userProfile.id_client;
 
-    // 2. Cargamos los favoritos del usuario
+    // 2. Actualizar el enlace de perfil con el nombre del usuario
+    updateProfileLink(userProfile.full_name);
+
+    // 3. Cargamos los favoritos del usuario
     await loadCurrentFavorites();
 
-    // 3. Cargamos todos los componentes dinámicos de la página
+    // 4. Cargamos todos los componentes dinámicos de la página
     loadAndRenderClientConversations();
     loadAndSetupCategories();
     setupPageEventListeners();
@@ -48,6 +52,42 @@ document.addEventListener('DOMContentLoaded', async () => {
 // ===================================================================
 // SECCIÓN 1: LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS
 // ===================================================================
+
+/**
+ * Actualiza el enlace de perfil en el header con el nombre del usuario.
+ */
+function updateProfileLink(fullName) {
+    const profileLink = document.getElementById('profile-link');
+    if (profileLink && fullName) {
+        // Extraer solo el primer nombre para mostrar en el header
+        const firstName = fullName.split(' ')[0];
+        profileLink.textContent = firstName;
+        profileLink.title = `Perfil de ${fullName}`; // Tooltip con el nombre completo
+        
+        // Agregar estilos de botón manteniendo la coherencia visual
+        profileLink.className = 'btn btn-outline-light btn-sm text-white border-light';
+        profileLink.style.cssText = `
+            border-radius: 20px;
+            padding: 5px 12px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        `;
+        
+        // Efectos hover dinámicos
+        profileLink.addEventListener('mouseenter', function() {
+            this.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+            this.style.borderColor = '#fff';
+            this.style.transform = 'translateY(-1px)';
+        });
+        
+        profileLink.addEventListener('mouseleave', function() {
+            this.style.backgroundColor = 'transparent';
+            this.style.borderColor = 'rgba(255, 255, 255, 0.5)';
+            this.style.transform = 'translateY(0)';
+        });
+    }
+}
 
 /**
  * Carga los favoritos actuales del usuario desde la API.
@@ -708,6 +748,9 @@ function setupPageEventListeners() {
                 const providerName = document.getElementById('summary-provider-name').textContent;
                 alert(`${result.message}\nHas propuesto contratar ${agreedHours} horas con ${providerName}.`);
 
+                // Recargar automáticamente la lista de contratos
+                loadAndRenderClientContracts();
+
             } catch (error) {
                 alert(`Error al enviar la oferta: ${error.message}`);
             } finally {
@@ -757,7 +800,7 @@ async function loadAndRenderClientContracts() {
     container.innerHTML = '<p class="text-muted">Cargando contratos...</p>';
 
     try {
-        const contracts = await getContracts();
+        const contracts = await getContracts({selected_rol: 'client'});
         if (contracts.length === 0) {
             container.innerHTML = '<p class="text-muted">No has enviado ninguna oferta de contrato.</p>';
             return;

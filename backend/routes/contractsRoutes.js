@@ -57,6 +57,10 @@ router.post('/', protect, async (req, res) => {
 router.get('/', protect, async (req, res) => {
     try {
         const { id, roles } = req.user;
+        const { selected_rol } = req.query;
+        console.log('req.user:', req.user);
+        console.log('req.query:', req.query);
+        console.log('selected_rol:', selected_rol);
         let query = `
             SELECT 
                 ct.id_contract, ct.agreed_hours, ct.agreed_price, ct.status, ct.offer_date,
@@ -72,20 +76,53 @@ router.get('/', protect, async (req, res) => {
             JOIN users u_provider ON p.id_user = u_provider.id_user
         `;
         let params = [];
-        if (roles.includes('provider')) {
-            const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
-            if (providerRows.length > 0) {
-                query += ' WHERE s.id_provider = ?';
-                params.push(providerRows[0].id_provider);
-            }
-        } else if (roles.includes('client')) {
-            const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
-            if (clientRows.length > 0) {
-                query += ' WHERE ct.id_client = ?';
-                params.push(clientRows[0].id_client);
+        if (roles.includes('provider') && roles.includes('client')) {
+            // Usuario con ambos roles
+            if (selected_rol === "client") {
+                const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
+                if (clientRows.length > 0) {
+                    query += ' WHERE ct.id_client = ?';
+                    params.push(clientRows[0].id_client);
+                }
+            } else if (selected_rol === "provider") {
+                const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
+                if (providerRows.length > 0) {
+                    query += ' WHERE s.id_provider = ?';
+                    params.push(providerRows[0].id_provider);
+                }
+            } else {
+                // Si no se especifica selected_rol, mostrar todos los contratos del usuario
+                const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
+                const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
+                
+                if (clientRows.length > 0 && providerRows.length > 0) {
+                    query += ' WHERE (ct.id_client = ? OR s.id_provider = ?)';
+                    params.push(clientRows[0].id_client, providerRows[0].id_provider);
+                } else if (clientRows.length > 0) {
+                    query += ' WHERE ct.id_client = ?';
+                    params.push(clientRows[0].id_client);
+                } else if (providerRows.length > 0) {
+                    query += ' WHERE s.id_provider = ?';
+                    params.push(providerRows[0].id_provider);
+                }
             }
         } else {
-            return res.status(403).json({ error: 'Usuario sin rol válido.' });
+            // Usuario con un solo rol
+            if (roles.includes('provider')) {
+                const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
+                if (providerRows.length > 0) {
+                    query += ' WHERE s.id_provider = ?';
+                    params.push(providerRows[0].id_provider);
+                }
+            } else if (roles.includes('client')) {
+                const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
+                if (clientRows.length > 0) {
+                    query += ' WHERE ct.id_client = ?';
+                    params.push(clientRows[0].id_client);
+                }
+            } else {
+                return res.status(403).json({ error: 'Usuario sin rol válido.' });
+            }
         }
         query += ' ORDER BY ct.offer_date DESC';
         const [contracts] = await pool.query(query, params);

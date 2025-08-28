@@ -222,7 +222,11 @@ export const createContract = (contractData) => fetchWithAuth('/contracts', {
     body: JSON.stringify(contractData)
 });
 
-export const getContracts = () => fetchWithAuth('/contracts');
+export const getContracts = (filters = {}) => {
+    const queryParams = new URLSearchParams(filters).toString();
+    const endpoint = queryParams ? `/contracts?${queryParams}` : '/contracts';
+    return fetchWithAuth(endpoint);
+};
 
 export const respondToContract = (contractId, action) => fetchWithAuth(`/contracts/${contractId}/respond`, {
     method: 'PATCH',
