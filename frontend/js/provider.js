@@ -390,7 +390,18 @@ function setupEventListeners() {
                                 <strong class="me-2">${r.full_name || r.reviewer}</strong>
                                 <span class="text-warning">${'★'.repeat(r.stars)}${'☆'.repeat(5 - r.stars)}</span>
                             </div>
-                            <div>${r.description}</div>
+                            <div class="mb-2">${r.description}</div>
+                            <small class="text-muted">
+                                ${r.created_at ? 
+                                    new Date(r.created_at).toLocaleDateString('es-ES', {
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }) : 'Fecha no disponible'
+                                }
+                            </small>
                         </div>
                     `).join('');
                 }

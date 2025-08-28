@@ -4,7 +4,7 @@ import { getClientById, putClient, getUserProfile } from "./api/authService.js";
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById, createContract, getContracts, completeContract, deleteContract } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
 import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
-import { getReviewsByServiceId } from "./api/reviews.js";
+import { getReviewsByServiceId, postReview } from "./api/reviews.js";
 
 // ===================================================================
 // PUNTO DE ENTRADA PRINCIPAL
@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         return;
     }
-    console.log(userProfile)
     myClientId = userProfile.id_client;
 
     // 2. Actualizar el enlace de perfil con el nombre del usuario
@@ -225,11 +224,9 @@ async function showServiceDetailModal(serviceId) {
     // Limpiar la variable global antes de cargar nuevos datos
     window.currentServiceData = null;
     
-    console.log('Loading service with ID:', serviceId); // Debug log
     
     try {
         const service = await getServiceById(serviceId);
-        console.log('Loaded service data:', service); // Debug log
         window.currentServiceData = service;
         const modalHtml = `
             <div class="modal fade" id="serviceDetailModal" tabindex="-1">
@@ -277,7 +274,6 @@ async function showServiceDetailModal(serviceId) {
         const serviceModal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
         serviceModal.show();
         
-        console.log('Modal created and shown for service:', service.name, 'ID:', service.id_service); // Debug log
 
         // Evento para mostrar reviews (ahora en el footer)
         document.getElementById('btn-show-reviews').addEventListener('click', async () => {
@@ -443,7 +439,6 @@ async function showFavoriteServices() {
             e.stopPropagation(); // Evitar que el evento se propague al listener global
             
             const serviceId = seeMoreBtn.dataset.serviceId;
-            console.log('Favorites modal - Service ID from dataset:', serviceId); // Debug log
             
             // Cerrar el modal de favoritos completamente y limpiar el backdrop
             favoritesModal.hide();
@@ -474,7 +469,6 @@ async function showFavoriteServices() {
  * Muestra un modal con las reviews de un servicio específico.
  */
 async function showReviewsModal(serviceId) {
-    console.log(serviceId)
     // Eliminar modal anterior si existe
     let oldModal = document.getElementById('reviewsModal');
     if (oldModal) oldModal.remove();
@@ -506,7 +500,17 @@ async function showReviewsModal(serviceId) {
                                                 </div>
                                             </div>
                                             <p class="card-text">${review.description}</p>
-                                            <small class="text-muted">${new Date(review.created_at).toLocaleDateString()}</small>
+                                            <small class="text-muted">
+                                                ${review.created_at ? 
+                                                    new Date(review.created_at).toLocaleDateString('es-ES', {
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    }) : 'Fecha no disponible'
+                                                }
+                                            </small>
                                         </div>
                                     </div>
                                 `).join('')
@@ -812,6 +816,240 @@ function showPromptModal(title, message, defaultValue = '', inputType = 'text', 
 }
 
 /**
+ * Muestra un modal para que el cliente deje una review del servicio antes de marcar como terminado
+ * @param {string} contractId - ID del contrato
+ * @param {string} serviceId - ID del servicio
+ * @param {string} serviceName - Nombre del servicio
+ * @param {string} providerName - Nombre del proveedor
+ * @param {function} onComplete - Función a ejecutar después de completar la review y el contrato
+ */
+function showReviewModal(contractId, serviceId, serviceName, providerName, onComplete) {
+    console.log('=== SHOW REVIEW MODAL ===');
+    console.log('Parámetros recibidos:');
+    console.log('contractId:', contractId, 'tipo:', typeof contractId);
+    console.log('serviceId:', serviceId, 'tipo:', typeof serviceId);
+    console.log('serviceName:', serviceName, 'tipo:', typeof serviceName);
+    console.log('providerName:', providerName, 'tipo:', typeof providerName);
+    console.log('========================');
+    
+    // Limpiar modal anterior si existe
+    const existingModal = document.getElementById('reviewModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modalHtml = `
+        <div class="modal fade" id="reviewModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-star-fill me-2"></i>
+                            Califica tu experiencia
+                        </h5>
+                    </div>
+                    <div class="modal-body py-4">
+                        <div class="text-center mb-4">
+                            <i class="bi bi-emoji-smile text-primary" style="font-size: 3rem;"></i>
+                            <h6 class="mt-2">¿Cómo fue tu experiencia con el servicio?</h6>
+                            <p class="text-muted small"><strong>${serviceName}</strong> por ${providerName}</p>
+                        </div>
+                        
+                        <form id="review-form">
+                            <div class="mb-4">
+                                <label class="form-label text-center d-block">Calificación</label>
+                                <div class="text-center">
+                                    <div class="rating-stars" id="rating-stars">
+                                        <i class="bi bi-star star-rating" data-rating="1"></i>
+                                        <i class="bi bi-star star-rating" data-rating="2"></i>
+                                        <i class="bi bi-star star-rating" data-rating="3"></i>
+                                        <i class="bi bi-star star-rating" data-rating="4"></i>
+                                        <i class="bi bi-star star-rating" data-rating="5"></i>
+                                    </div>
+                                    <input type="hidden" id="selected-rating" value="0">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="review-description" class="form-label">Comparte tu experiencia</label>
+                                <textarea class="form-control" id="review-description" rows="4" 
+                                          placeholder="Cuéntanos cómo fue el servicio, qué te gustó o qué podría mejorar..."
+                                          required></textarea>
+                            </div>
+                            
+                            <div class="text-muted small mb-3">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Tu review ayudará a otros usuarios a tomar mejores decisiones.
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer justify-content-between border-0">
+                        <button type="button" class="btn btn-secondary px-4" id="reviewModalSkip">Omitir Review</button>
+                        <button type="button" class="btn btn-primary px-4" id="reviewModalSubmit" disabled>Enviar Review y Finalizar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <style>
+            .star-rating {
+                font-size: 2rem;
+                color: #ddd;
+                cursor: pointer;
+                transition: color 0.2s ease;
+                margin: 0 2px;
+            }
+            .star-rating:hover,
+            .star-rating.active {
+                color: #ffc107;
+            }
+            .rating-stars:hover .star-rating {
+                color: #ddd;
+            }
+        </style>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+    
+    const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+    modal.show();
+    
+    let selectedRating = 0;
+    
+    // Manejar las estrellas de calificación
+    const stars = document.querySelectorAll('.star-rating');
+    const submitBtn = document.getElementById('reviewModalSubmit');
+    const descriptionTextarea = document.getElementById('review-description');
+    
+    stars.forEach((star, index) => {
+        star.addEventListener('click', () => {
+            selectedRating = index + 1;
+            document.getElementById('selected-rating').value = selectedRating;
+            
+            // Actualizar visualización de estrellas
+            stars.forEach((s, i) => {
+                if (i < selectedRating) {
+                    s.classList.add('active');
+                    s.classList.remove('bi-star');
+                    s.classList.add('bi-star-fill');
+                } else {
+                    s.classList.remove('active');
+                    s.classList.remove('bi-star-fill');
+                    s.classList.add('bi-star');
+                }
+            });
+            
+            checkFormValidity();
+        });
+        
+        // Efecto hover
+        star.addEventListener('mouseenter', () => {
+            stars.forEach((s, i) => {
+                if (i <= index) {
+                    s.style.color = '#ffc107';
+                } else {
+                    s.style.color = '#ddd';
+                }
+            });
+        });
+    });
+    
+    // Restaurar colores al salir del hover
+    document.getElementById('rating-stars').addEventListener('mouseleave', () => {
+        stars.forEach((s, i) => {
+            if (i < selectedRating) {
+                s.style.color = '#ffc107';
+            } else {
+                s.style.color = '#ddd';
+            }
+        });
+    });
+    
+    // Validar formulario
+    function checkFormValidity() {
+        const description = descriptionTextarea.value.trim();
+        const hasRating = selectedRating > 0;
+        const hasDescription = description.length >= 10;
+        
+        submitBtn.disabled = !(hasRating && hasDescription);
+    }
+    
+    descriptionTextarea.addEventListener('input', checkFormValidity);
+    
+    // Manejar botón de enviar review
+    submitBtn.addEventListener('click', async () => {
+        const description = descriptionTextarea.value.trim();
+        
+        if (selectedRating === 0 || description.length < 10) {
+            showModal('Datos Incompletos', 'Por favor selecciona una calificación y escribe al menos 10 caracteres en tu comentario.', 'warning');
+            return;
+        }
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
+        
+        try {
+            // Enviar la review
+            const reviewData = {
+                id_service: serviceId,
+                id_client: myClientId,
+                stars: selectedRating,
+                description: description
+            };
+            
+            
+            const reviewResult = await postReview(reviewData);
+            
+            if (reviewResult.error) {
+                throw new Error(reviewResult.error);
+            }
+            
+            // Marcar el contrato como completado
+            await completeContract(contractId);
+            
+            modal.hide();
+            showModal('¡Gracias!', 'Tu review ha sido enviada y el servicio ha sido marcado como terminado.', 'success');
+            
+            if (onComplete && typeof onComplete === 'function') {
+                onComplete();
+            }
+            
+        } catch (error) {
+            showModal('Error', `Error al enviar la review: ${error.message}`, 'error');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Enviar Review y Finalizar';
+        }
+    });
+    
+    // Manejar botón de omitir review
+    document.getElementById('reviewModalSkip').addEventListener('click', async () => {
+        showConfirmModal(
+            'Omitir Review',
+            '¿Estás seguro de que quieres finalizar el servicio sin dejar una review?',
+            async () => {
+                try {
+                    await completeContract(contractId);
+                    modal.hide();
+                    showModal('Servicio Finalizado', 'El servicio ha sido marcado como terminado.', 'success');
+                    
+                    if (onComplete && typeof onComplete === 'function') {
+                        onComplete();
+                    }
+                } catch (error) {
+                    showModal('Error', `Error al finalizar: ${error.message}`, 'error');
+                }
+            }
+        );
+    });
+    
+    // Limpiar el modal del DOM cuando se oculte
+    document.getElementById('reviewModal').addEventListener('hidden.bs.modal', function() {
+        this.remove();
+        cleanupModalBackdrops();
+    });
+}
+
+/**
  * Genera un avatar SVG con las iniciales del nombre completo
  * @param {string} fullName - Nombre completo del proveedor
  * @param {number} size - Tamaño del avatar en píxeles (por defecto 60)
@@ -922,7 +1160,7 @@ function setupPageEventListeners() {
         }
         else if (seeMoreBtn) {
             const serviceId = seeMoreBtn.dataset.serviceId;
-            console.log('Button clicked - Service ID from dataset:', serviceId); // Debug log
+            
             // Limpiar datos previos antes de mostrar el nuevo modal
             window.currentServiceData = null;
             showServiceDetailModal(serviceId);
@@ -1072,19 +1310,16 @@ function setupPageEventListeners() {
         }
         else if (completeContractBtn) {
             const contractId = completeContractBtn.dataset.contractId;
-            showConfirmModal(
-                'Confirmar Finalización',
-                '¿Confirmas que el servicio ha sido completado a tu satisfacción?',
-                async () => {
-                    try {
-                        await completeContract(contractId);
-                        showModal('¡Éxito!', 'Has confirmado la finalización del servicio.', 'success');
-                        loadAndRenderClientContracts(); // Recargamos la lista
-                    } catch (error) {
-                        showModal('Error', `Error al confirmar: ${error.message}`, 'error');
-                    }
-                }
-            );
+            const serviceId = completeContractBtn.dataset.serviceId;
+            const serviceName = completeContractBtn.dataset.serviceName;
+            const providerName = completeContractBtn.dataset.providerName;
+            
+            
+            
+            // Mostrar el modal de review antes de completar el contrato
+            showReviewModal(contractId, serviceId, serviceName, providerName, () => {
+                loadAndRenderClientContracts(); // Recargamos la lista
+            });
         }
     });
 
@@ -1103,6 +1338,13 @@ async function loadAndRenderClientContracts() {
 
     try {
         const contracts = await getContracts({selected_rol: 'client'});
+        console.log('=== CONTRATOS CARGADOS ===');
+        console.log('Número de contratos:', contracts.length);
+        console.log('Primer contrato (ejemplo):', contracts[0]);
+        console.log('Campos del primer contrato:', contracts[0] ? Object.keys(contracts[0]) : 'N/A');
+        console.log('id_service del primer contrato:', contracts[0]?.id_service);
+        console.log('=========================');
+        
         if (contracts.length === 0) {
             container.innerHTML = '<p class="text-muted">No has enviado ninguna oferta de contrato.</p>';
             return;
@@ -1123,7 +1365,11 @@ async function loadAndRenderClientContracts() {
                     actions = ''; // Ya confirmó, no hay más acciones para él
                 } else {
                     badge = `<span class="badge bg-success">Aceptado</span>`;
-                    actions = `<button class="btn btn-sm btn-info btn-complete-contract" data-contract-id="${contract.id_contract}">Marcar Terminado</button>`;
+                    actions = `<button class="btn btn-sm btn-info btn-complete-contract" 
+                                      data-contract-id="${contract.id_contract}"
+                                      data-service-id="${contract.id_service}"
+                                      data-service-name="${contract.service_name}"
+                                      data-provider-name="${contract.provider_name}">Marcar Terminado</button>`;
                 }
             } else if (contract.status === 'denied') {
                 badge = `<span class="badge bg-danger">Rechazado</span>`;

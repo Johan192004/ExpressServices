@@ -48,6 +48,7 @@ CREATE TABLE reviews (
     description TEXT,
     id_service INT,
     id_client INT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (id_service) REFERENCES services(id_service),
     FOREIGN KEY (id_client) REFERENCES clients(id_client)
 );
@@ -138,3 +139,7 @@ CREATE TABLE messages (
     FOREIGN KEY (id_conversation) REFERENCES conversations(id_conversation),
     FOREIGN KEY (sender_id) REFERENCES users(id_user)
 );
+
+-- Migración para agregar created_at a la tabla reviews si no existe
+-- (solo ejecutar si la tabla ya existe sin este campo)
+-- ALTER TABLE reviews ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;

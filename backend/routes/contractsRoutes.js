@@ -65,7 +65,7 @@ router.get('/', protect, async (req, res) => {
             SELECT 
                 ct.id_contract, ct.agreed_hours, ct.agreed_price, ct.status, ct.offer_date,
                 ct.client_marked_completed, ct.provider_marked_completed,
-                s.name as service_name,
+                s.id_service, s.name as service_name,
                 u_client.full_name as client_name,
                 u_provider.full_name as provider_name
             FROM contracts ct
