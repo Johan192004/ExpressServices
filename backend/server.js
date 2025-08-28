@@ -44,6 +44,13 @@ app.use('/api/providers', providerRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
 // --- INICIO DEL SERVIDOR ---
-app.listen(PORT, () => {
+app.listen(PORT, (err) => {
+  if (err) {
+    console.error('❌ Error al iniciar el servidor:', err.message);
+    if (err.code === 'EADDRINUSE') {
+      console.error(`El puerto ${PORT} ya está en uso`);
+    }
+    return;
+  }
   console.log(`Servidor corriendo en el puerto ${PORT} ✅`);
 });
