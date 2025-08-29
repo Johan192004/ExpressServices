@@ -1,6 +1,7 @@
 // frontend/js/handlers/authHandlers.js
 
 import { loginUser, registerClient, registerProvider, checkEmailExists, requestPasswordReset } from '../api/authService.js';
+import { showAlert } from '../utils/modalUtils.js';
 
 /**
  * Añade un listener a un campo de email para verificar si el email ya existe en la DB
@@ -100,11 +101,11 @@ if (loginForm) {
         const data = Object.fromEntries(new FormData(form));
         try {
             const result = await registerFunction(data);
-            alert(result.message || 'Registro exitoso. Ahora puedes iniciar sesión.');
+            await showAlert(result.message || 'Registro exitoso. Ahora puedes iniciar sesión.', 'success');
             bootstrap.Modal.getInstance(document.getElementById('registerModal')).hide();
             new bootstrap.Modal(document.getElementById('loginModal')).show();
         } catch (error) {
-            alert(`Error: ${error.message}`);
+            await showAlert(`Error: ${error.message}`, 'error');
         }
     };
 
