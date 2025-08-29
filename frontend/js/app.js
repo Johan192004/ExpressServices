@@ -40,3 +40,45 @@ function updateNavbar() {
 }
 
 document.addEventListener('DOMContentLoaded', updateNavbar);
+
+// --- Google Sign-In ---
+
+window.onload = async function() {
+    const googleBtn = document.getElementById('googleSignInBtn');
+    if (googleBtn) {
+        // Obtiene el client ID desde el backend
+        try {
+            const res = await fetch('http://localhost:3030/api/google-client-id');
+            const data = await res.json();
+            if (data.clientId) {
+                google.accounts.id.initialize({
+                    client_id: data.clientId,
+                    callback: handleGoogleCredentialResponse
+                });
+                google.accounts.id.renderButton(
+                    googleBtn,
+                    { theme: 'outline', size: 'large' }
+                );
+            } else {
+                googleBtn.innerText = 'No se pudo cargar Google Sign-In';
+            }
+        } catch (err) {
+            googleBtn.innerText = 'Error al cargar Google Sign-In';
+        }
+    }
+};
+
+async function handleGoogleCredentialResponse(response) {
+    const res = await fetch('http://localhost:3030/api/login/google', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: response.credential })
+    });
+    const data = await res.json();
+    if (data.token) {
+        localStorage.setItem('token', data.token);
+    window.location.href = '/frontend/views/private/client.html';
+    } else {
+        document.getElementById('loginResult').innerText = data.error || 'Error de autenticación con Google';
+    }
+}

@@ -43,6 +43,11 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
+// Endpoint para exponer el GOOGLE_CLIENT_ID al frontend
+app.get('/api/google-client-id', (req, res) => {
+  res.json({ clientId: process.env.GOOGLE_CLIENT_ID });
+});
+
 // --- INICIO DEL SERVIDOR ---
 app.listen(PORT, (err) => {
   if (err) {

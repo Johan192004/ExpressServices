@@ -4,6 +4,7 @@ const pool = require("../models/db.js");
 const bcrypt = require("bcryptjs");
 const jwt = require('jsonwebtoken'); 
 const { body, validationResult } = require('express-validator'); 
+const { googleLogin } = require('../controllers/googleAuthController');
 
 // Reglas de validación para el login
 const loginValidationRules = [
@@ -94,3 +95,6 @@ router.post("/", loginValidationRules, async (req, res) => {
 });
 
 module.exports = router;
+
+// Ruta para login con Google
+router.post('/google', googleLogin);
