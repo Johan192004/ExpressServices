@@ -601,21 +601,21 @@ function setupEventListeners() {
         }
     });
 
-    // Listener separado para eliminar servicios
+    // Listener separado para ocultar (soft-delete) servicios
     document.getElementById('my-services-container').addEventListener('click', async (e) => {
         const btn = e.target.closest('.btn-delete-service');
         if (!btn) return;
         const serviceId = btn.dataset.serviceId;
         showConfirmModal(
-            'Eliminar Servicio',
-            '¿Estás seguro de que quieres eliminar este servicio?',
+        'Eliminar Servicio',
+        '¿Seguro que quieres eliminar este servicio? No será visible para ti ni para los clientes.',
             async () => {
                 try {
                     await deleteService(serviceId);
-                    showModal('¡Éxito!', 'Servicio eliminado con éxito.', 'success');
+            showModal('¡Éxito!', 'Servicio eliminado con éxito.', 'success');
                     loadMyServices();
                 } catch (error) {
-                    showModal('Error', `Error al eliminar: ${error.message}`, 'error');
+            showModal('Error', `Error al eliminar: ${error.message}`, 'error');
                 }
             }
         );

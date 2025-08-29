@@ -35,6 +35,7 @@ CREATE TABLE services (
     hour_price DECIMAL(10,2),
     creation_date DATE,
     experience_years TINYINT CHECK(experience_years>=0),
+    is_hidden BOOLEAN DEFAULT FALSE,
     id_category INT,
     id_provider INT, -- CAMBIO: id_supplier -> id_provider
     FOREIGN KEY (id_category) REFERENCES categories(id_category),
@@ -149,3 +150,7 @@ ADD COLUMN hidden_by_client BOOLEAN DEFAULT FALSE
 
 ALTER TABLE contracts 
 ADD COLUMN hidden_by_provider BOOLEAN DEFAULT FALSE 
+
+-- Migración incremental: ocultamiento lógico de servicios
+-- Ejecutar solo si la columna no existe
+-- ALTER TABLE services ADD COLUMN is_hidden BOOLEAN DEFAULT FALSE;
