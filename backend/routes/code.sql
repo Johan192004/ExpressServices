@@ -143,3 +143,9 @@ CREATE TABLE messages (
 -- Migración para agregar created_at a la tabla reviews si no existe
 -- (solo ejecutar si la tabla ya existe sin este campo)
 -- ALTER TABLE reviews ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+
+ALTER TABLE contracts 
+ADD COLUMN hidden_by_client BOOLEAN DEFAULT FALSE 
+
+ALTER TABLE contracts 
+ADD COLUMN hidden_by_provider BOOLEAN DEFAULT FALSE 

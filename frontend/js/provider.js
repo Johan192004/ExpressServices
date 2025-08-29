@@ -3,6 +3,7 @@
 import { getUserProfile, getMyServices, getCategories, createService, updateService, deleteService, getServiceById, getProviderConversations, respondToContract, getContracts, deleteContract, completeContract } from './api/authService.js';
 import { getProviderById, putProvider } from './api/provider.js';
 import { openChatModal } from './ui/chat.js';
+import { initContractHistory, addContractToHistory, checkAndMoveToHistory } from './contractHistory.js';
 
 let myProviderId = null;
 
@@ -211,7 +212,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
         const userProfile = await getUserProfile();
         if (!userProfile.id_provider) {
-            showModal('Acceso Denegado', 'Debes tener un perfil de proveedor para acceder a esta sección.', 'error', () => {
+            showModal('Acceso Denegado', 'Debes tener un perfil de proveedor para acceder a esta sección. Cerraremos tu sesión y te llevaremos al inicio.', 'error', () => {
+                // Cerrar sesión para que en index se muestren los botones de invitado
+                localStorage.removeItem('token');
                 window.location.href = '/frontend/index.html';
             });
             return;
@@ -231,6 +234,9 @@ async function main(userProfile) {
     // Actualizar el enlace de perfil con el nombre del usuario
     updateProfileLink(userProfile.full_name);
     
+    // Inicializar sistema de historial de contratos
+    initContractHistory();
+    
     await loadAndRenderContracts();
     await loadAndRenderConversations();
     await loadCategoriesIntoSelect();
@@ -247,9 +253,23 @@ async function loadAndRenderContracts() {
     container.innerHTML = '<p class="text-muted">Cargando solicitudes...</p>';
 
     try {
-        const contracts = await getContracts({ selected_rol: "provider" });
-        if (contracts.length === 0) {
-            container.innerHTML = '<p class="text-muted">No tienes solicitudes de contrato.</p>';
+        const allContracts = await getContracts({ selected_rol: "provider" });
+        
+        // Filtrar contratos: excluir solo los completados (los ocultos ya los filtra el backend)
+        const activeContracts = allContracts.filter(contract => {
+            const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
+            
+            // Si está completado por ambas partes, moverlo al historial y no mostrarlo
+            if (isCompletedByBoth) {
+                checkAndMoveToHistory(contract);
+                return false; // No mostrar en la lista activa
+            }
+            
+            return true; // Mostrar en la lista activa
+        });
+        
+        if (activeContracts.length === 0) {
+            container.innerHTML = '<p class="text-muted">No tienes solicitudes de contrato activas.</p>';
             return;
         }
 
@@ -257,12 +277,9 @@ async function loadAndRenderContracts() {
         const getContractDisplay = (contract) => {
             let statusDisplay = '';
             let actions = '';
-            const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
 
-            if (isCompletedByBoth) {
-                statusDisplay = `<span class="badge bg-primary">Terminado</span>`;
-                actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract" data-id="${contract.id_contract}" title="Eliminar del historial">🗑️</button>`;
-            } else if (contract.status === 'pending') {
+            // Lógica para contratos activos
+            if (contract.status === 'pending') {
                 statusDisplay = `<span class="badge bg-warning text-dark">PENDIENTE</span>`;
                 actions = `<div class="btn-group mt-2">
                                <button class="btn btn-sm btn-success btn-accept-contract" data-id="${contract.id_contract}">Aceptar</button>
@@ -278,13 +295,13 @@ async function loadAndRenderContracts() {
                 }
             } else if (contract.status === 'denied') {
                 statusDisplay = `<span class="badge bg-danger">RECHAZADO</span>`;
-                actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract mt-2" data-id="${contract.id_contract}" title="Eliminar">🗑️</button>`;
+                actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract mt-2" data-contract-id="${contract.id_contract}" title="Eliminar de mi vista">🗑️</button>`;
             }
 
             return { statusDisplay, actions };
         };
 
-        container.innerHTML = contracts.map(c => {
+        container.innerHTML = activeContracts.map(c => {
             const { statusDisplay, actions } = getContractDisplay(c);
             return `
                 <div class="card mb-3">
@@ -488,7 +505,7 @@ function setupEventListeners() {
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Precio por hora</label>
-                                    <input type="number" class="form-control" name="hour_price" value="" required>
+                                    <input type="number" class="form-control" name="hour_price" value="" required step="1" min="0">
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label">Años de experiencia</label>
@@ -514,6 +531,8 @@ function setupEventListeners() {
             ev.preventDefault();
             const formData = new FormData(ev.target);
             const data = Object.fromEntries(formData.entries());
+            // Forzar entero en hour_price
+            data.hour_price = Math.trunc(Number(data.hour_price || 0));
             const id = data.id_service;
             try {
                 await updateService(id, data);
@@ -565,7 +584,9 @@ function setupEventListeners() {
             form.id_service.value = service.id_service;
             form.name.value = service.name;
             form.description.value = service.description;
-            form.hour_price.value = service.hour_price;
+            // Mostrar precio/hora como entero
+            const hp = Number(service.hour_price);
+            form.hour_price.value = Number.isFinite(hp) ? Math.trunc(hp) : '';
             form.experience_years.value = service.experience_years;
             // populate categories into edit select
             const editSelect = document.getElementById('edit-category-select');
@@ -608,6 +629,8 @@ function setupEventListeners() {
         e.preventDefault();
         const formData = new FormData(serviceForm);
         const data = Object.fromEntries(formData.entries());
+        // Forzar entero en hour_price para creación/actualización desde este formulario
+        data.hour_price = Math.trunc(Number(data.hour_price || 0));
         const serviceId = data.id_service;
         try {
             if (serviceId) {
@@ -672,22 +695,23 @@ function setupEventListeners() {
                 denyContractBtn.textContent = 'Rechazar';
             }
         }
+        // Clic en "Eliminar" contrato rechazado (solo eliminar de la vista del proveedor)
         else if (deleteContractBtn) {
-        const contractId = deleteContractBtn.dataset.id;
-        showConfirmModal(
-            'Eliminar Contrato',
-            '¿Estás seguro de que deseas eliminar este contrato de tu historial?',
-            async () => {
-                try {
-                    await deleteContract(contractId);
-                    showModal('¡Éxito!', 'Contrato eliminado con éxito.', 'success');
-                    loadAndRenderContracts(); // Recargamos la lista
-                } catch (error) {
-                    showModal('Error', `Error al eliminar: ${error.message}`, 'error');
+            const contractId = deleteContractBtn.dataset.contractId;
+            showConfirmModal(
+                'Eliminar Contrato',
+                '¿Estás seguro de que deseas eliminar este contrato de tu vista?',
+                async () => {
+                    try {
+                        await deleteContract(contractId);
+                        showModal('¡Éxito!', 'Contrato eliminado de tu vista.', 'success');
+                        loadAndRenderContracts(); // Recargamos la lista
+                    } catch (error) {
+                        showModal('Error', `Error al eliminar: ${error.message}`, 'error');
+                    }
                 }
-            }
-        );
-    }
+            );
+        }
         else if (completeContractBtn) {
             const contractId = completeContractBtn.dataset.id;
             showConfirmModal(
@@ -861,4 +885,70 @@ function setupScrollToTopButton() {
             scrollToTopBtn.style.visibility = 'visible';
         }
     };
+}
+
+// ===================================================================
+// FUNCIONES PARA GESTIONAR CONTRATOS OCULTOS
+// ===================================================================
+
+
+/**
+ * Actualiza el badge del botón de contratos ocultos
+ */
+async function updateHiddenContractsBadge() {
+    const hiddenBtn = document.getElementById('hidden-contracts-btn');
+    if (!hiddenBtn) return;
+    
+    try {
+        const hiddenContracts = await getHiddenContractsForProvider();
+        const count = hiddenContracts.length;
+        
+        // Remover badge existente
+        const existingBadge = hiddenBtn.querySelector('.badge');
+        if (existingBadge) {
+            existingBadge.remove();
+        }
+        
+        // Agregar nuevo badge si hay contratos ocultos
+        if (count > 0) {
+            const badge = document.createElement('span');
+            badge.className = 'badge bg-secondary ms-1';
+            badge.textContent = count;
+            hiddenBtn.appendChild(badge);
+        }
+    } catch (error) {
+        console.error('Error al actualizar badge de contratos ocultos:', error);
+    }
+}
+
+/**
+ * Configura los event listeners para contratos ocultos
+ */
+function setupHiddenContractsListeners() {
+    // Botón para abrir modal de contratos ocultos
+    const hiddenBtn = document.getElementById('hidden-contracts-btn');
+    if (hiddenBtn) {
+        hiddenBtn.addEventListener('click', () => {
+            renderHiddenContracts();
+            const modal = new bootstrap.Modal(document.getElementById('hiddenContractsModal'));
+            modal.show();
+        });
+    }
+    
+    // Event delegation para botones de restaurar
+    document.addEventListener('click', async (e) => {
+        if (e.target.closest('.restore-contract-btn')) {
+            const btn = e.target.closest('.restore-contract-btn');
+            const contractId = parseInt(btn.dataset.contractId);
+            
+            const success = await showContractInProviderView(contractId);
+            if (success) {
+                showModal('¡Éxito!', 'Contrato restaurado en tu vista principal.', 'success');
+                renderHiddenContracts(); // Actualizar la lista de ocultos
+                loadAndRenderContracts(); // Actualizar la lista principal
+            } else {
+                showModal('Error', 'No se pudo restaurar el contrato. Inténtalo de nuevo.', 'error');
+            }
+        }
+    });
 }
