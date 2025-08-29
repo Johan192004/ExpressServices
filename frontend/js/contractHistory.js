@@ -1,89 +1,20 @@
 // frontend/js/contractHistory.js
+import { getContractsHistory } from './api/authService.js';
 
 /**
  * Sistema de gestión del historial de contratos completados
- * Maneja el almacenamiento local y la visualización de contratos finalizados
+ * Carga y visualiza contratos finalizados desde el backend (sin localStorage)
  */
-
-// Clave para localStorage
-const HISTORY_STORAGE_KEY = 'express_services_contract_history';
-
-/**
- * Obtiene el historial de contratos desde localStorage
- */
-export function getContractHistory() {
-    try {
-        const history = localStorage.getItem(HISTORY_STORAGE_KEY);
-        return history ? JSON.parse(history) : [];
-    } catch (error) {
-        console.error('Error al cargar historial de contratos:', error);
-        return [];
-    }
+// Carga historial desde el servidor (fuente de verdad).
+async function loadServerContractHistory() {
+    const onProviderPage = typeof window !== 'undefined' && window.location?.pathname?.includes('provider.html');
+    const selected_rol = onProviderPage ? 'provider' : 'client';
+    const data = await getContractsHistory({ selected_rol });
+    // Esperamos un array; si no, normalizamos
+    return Array.isArray(data) ? data : (data?.contracts || []);
 }
 
-/**
- * Guarda el historial de contratos en localStorage
- */
-function saveContractHistory(history) {
-    try {
-        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch (error) {
-        console.error('Error al guardar historial de contratos:', error);
-    }
-}
-
-/**
- * Agrega un contrato al historial cuando se marca como completado
- */
-export function addContractToHistory(contract) {
-    const history = getContractHistory();
-    
-    // Verificar si el contrato ya existe en el historial
-    const existingIndex = history.findIndex(c => c.id_contract === contract.id_contract);
-    
-    if (existingIndex === -1) {
-        // Agregar información adicional al contrato
-        const historyContract = {
-            ...contract,
-            completed_date: new Date().toISOString(),
-            completed_by: getCurrentUserRole() // 'client' o 'provider'
-        };
-        
-        history.unshift(historyContract); // Agregar al inicio del array
-        saveContractHistory(history);
-        
-        // Actualizar badge del botón de historial
-        updateHistoryBadge();
-        
-        return true;
-    }
-    
-    return false;
-}
-
-/**
- * Elimina un contrato específico del historial
- */
-export function removeContractFromHistory(contractId) {
-    const history = getContractHistory();
-    const filteredHistory = history.filter(c => c.id_contract !== contractId);
-    
-    if (filteredHistory.length !== history.length) {
-        saveContractHistory(filteredHistory);
-        updateHistoryBadge();
-        return true;
-    }
-    
-    return false;
-}
-
-/**
- * Limpia todo el historial de contratos
- */
-export function clearContractHistory() {
-    localStorage.removeItem(HISTORY_STORAGE_KEY);
-    updateHistoryBadge();
-}
+// Eliminado manejo de localStorage: toda la data se obtiene del servidor
 
 /**
  * Obtiene el rol actual del usuario desde el token
@@ -92,9 +23,16 @@ function getCurrentUserRole() {
     try {
         const token = localStorage.getItem('token');
         if (!token) return null;
-        
         const payload = JSON.parse(atob(token.split('.')[1]));
-        return payload.user?.selected_rol || 'client';
+        const roles = payload.user?.roles || [];
+        // Si tiene ambos roles, decidir por URL de la vista actual
+        const onProviderPage = typeof window !== 'undefined' && window.location?.pathname?.includes('provider.html');
+        if (roles.includes('provider') && roles.includes('client')) {
+            return onProviderPage ? 'provider' : 'client';
+        }
+        if (roles.includes('provider')) return 'provider';
+        if (roles.includes('client')) return 'client';
+        return 'client';
     } catch (error) {
         console.error('Error al obtener rol del usuario:', error);
         return 'client';
@@ -119,11 +57,30 @@ export function updateHistoryBadge() {
 /**
  * Renderiza el historial de contratos en el modal
  */
-export function renderContractHistory() {
+export async function renderContractHistory() {
     const container = document.getElementById('contract-history-container');
     if (!container) return;
-    
-    const history = getContractHistory();
+
+    // Estado de carga
+    container.innerHTML = `
+        <div class="text-center text-muted">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Cargando historial...</p>
+        </div>
+    `;
+
+    let history = [];
+    try {
+        history = await loadServerContractHistory();
+    } catch (error) {
+        container.innerHTML = `
+            <div class="text-center text-danger">
+                <i class="bi bi-exclamation-triangle" style="font-size: 3rem;"></i>
+                <p class="mt-3">No se pudo cargar el historial. Intenta nuevamente.</p>
+            </div>
+        `;
+        return;
+    }
     const userRole = getCurrentUserRole();
     // Detectar rol por URL de la vista como fuente primaria; fallback al token
     const onProviderPage = typeof window !== 'undefined' && window.location?.pathname?.includes('provider.html');
@@ -191,10 +148,11 @@ export function setupContractHistoryListeners() {
     // Botón para abrir modal de historial
     const historyBtn = document.getElementById('contract-history-btn');
     if (historyBtn) {
-        historyBtn.addEventListener('click', () => {
-            renderContractHistory();
+        historyBtn.addEventListener('click', async () => {
+            // Abrir el modal primero y luego renderizar (con estado de carga dentro)
             const modal = new bootstrap.Modal(document.getElementById('contractHistoryModal'));
             modal.show();
+            await renderContractHistory();
         });
     }
 }
@@ -207,14 +165,4 @@ export function initContractHistory() {
     setupContractHistoryListeners();
 }
 
-/**
- * Verifica si un contrato debe ser movido al historial después de completarse
- * Esto se llama después de que un contrato se marca como completado por ambas partes
- */
-export function checkAndMoveToHistory(contract) {
-    // Solo mover al historial si ambas partes han marcado como completado
-    if (contract.client_marked_completed && contract.provider_marked_completed) {
-        return addContractToHistory(contract);
-    }
-    return false;
-}
+// Ya no se mueve historial en el cliente; el backend es la fuente de verdad

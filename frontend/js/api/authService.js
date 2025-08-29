@@ -239,6 +239,12 @@ export const getContracts = (filters = {}) => {
     return fetchWithAuth(endpoint);
 };
 
+export const getContractsHistory = (filters = {}) => {
+    const queryParams = new URLSearchParams(filters).toString();
+    const endpoint = queryParams ? `/contracts/history?${queryParams}` : '/contracts/history';
+    return fetchWithAuth(endpoint);
+};
+
 export const respondToContract = (contractId, action) => fetchWithAuth(`/contracts/${contractId}/respond`, {
     method: 'PATCH',
     body: JSON.stringify({ action }) // 'accepted' o 'denied'
