@@ -1,16 +1,7 @@
-import { getUserProfile } from './api/authService.js';
+import { resetPassword } from './api/authService.js';
 import { API_URL } from './api/config.js';
-let myProviderId = null; // El ID de proveedor del usuario logueado
-let myClientId = null; // El ID de cliente del usuario logueado
 
 document.addEventListener('DOMContentLoaded', async() => {
-    const userProfile = await getUserProfile();
-
-    if (userProfile) {
-        myProviderId = userProfile.id_provider;
-        myClientId = userProfile.id_client;
-    }
-
     const form = document.getElementById('resetPasswordForm');
     const newPasswordInput = document.getElementById('newPassword');
     const confirmPasswordInput = document.getElementById('confirmPassword');
@@ -58,32 +49,14 @@ document.addEventListener('DOMContentLoaded', async() => {
         resultDiv.textContent = 'Actualizando contraseña...';
 
         try {
-            // Llamada a la API del backend
-            const response = await fetch(`${API_URL}/api/password/reset/${token}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password: newPassword })
-            });
-
-            const result = await response.json();
-
-            if (!response.ok) {
-                throw new Error(result.error || 'Ocurrió un error.');
-            }
+            // Usar la función del authService que no pasa por fetchWithAuth
+            const result = await resetPassword(token, newPassword);
             
             // Mostramos el mensaje de éxito
             resultDiv.className = 'alert alert-success';
-            resultDiv.textContent = result.message;
+            resultDiv.textContent = result.message || 'Contraseña actualizada exitosamente.';
             form.style.display = 'none'; // Ocultamos el formulario
             
-            // Redirigimos al inicio después de unos segundos
-            setTimeout(() => {
-                if (myProviderId) {
-                    window.location.href = 'private/provider.html';
-                } else if (myClientId) {
-                    window.location.href = 'private/client.html';
-                }
-            }, 3000);
 
         } catch (error) {
             resultDiv.className = 'alert alert-danger';

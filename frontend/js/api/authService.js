@@ -106,6 +106,17 @@ export const requestPasswordReset = async (email) => {
     return result;
 };
 
+export const resetPassword = async (token, newPassword) => {
+    const response = await fetch(`${API_URL}/api/password/reset/${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: newPassword })
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || 'Error al resetear la contraseña.');
+    return result;
+};
+
 export const checkEmailExists = async (email) => {
     const response = await fetch(`${API_URL}/api/users/check-email?email=${encodeURIComponent(email)}`);
     const result = await response.json();
