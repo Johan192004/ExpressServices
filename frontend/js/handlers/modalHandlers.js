@@ -2,6 +2,7 @@
 
 import { startConversation, getServiceById } from '../api/authService.js';
 import { openChatModal } from '../ui/chat.js';
+import { showAlert } from '../utils/modalUtils.js';
 
 // ===================================================================
 // FUNCIONES DE MANEJO DE IMÁGENES CON AVATARES DE RESPALDO
@@ -196,7 +197,7 @@ async function handleContactClick(target) {
             const authModal = new bootstrap.Modal(document.getElementById('authActionModal'));
             authModal.show();
         } else {
-            alert(`Error: ${error.message}`);
+            await showAlert(`Error: ${error.message}`, 'error');
         }
     }
 }

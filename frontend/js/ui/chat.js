@@ -1,5 +1,6 @@
 
 import { getMessages, sendMessage } from '../api/authService.js';
+import { showAlert } from '../utils/modalUtils.js';
 
 let currentConversationId = null;
 let chatPollingInterval = null;
@@ -116,7 +117,7 @@ function setupChatFormListener() {
             }, 1000); // Verificar después de 1 segundo
             
         } catch (error) {
-            alert(`Error al enviar mensaje: ${error.message}`);
+            await showAlert(`Error al enviar mensaje: ${error.message}`, 'error');
         } finally {
             e.target.querySelector('button').disabled = false;
             e.target.querySelector('button').innerHTML = originalButtonHtml;
