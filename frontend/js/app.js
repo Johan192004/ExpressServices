@@ -39,7 +39,52 @@ function updateNavbar() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', updateNavbar);
+document.addEventListener('DOMContentLoaded', () => {
+    updateNavbar();
+
+    // Animación suave para mostrar/ocultar sección "Acerca de Nosotros"
+    const aboutUsBtn = document.getElementById('aboutUsHeaderBtn');
+    const aboutUsShowMoreBtn = document.getElementById('aboutUsShowMoreBtn');
+    const aboutUsSection = document.getElementById('aboutUsSection');
+    if (aboutUsSection) {
+        // Inicializa estilos para animación
+        aboutUsSection.style.transition = 'max-height 0.5s cubic-bezier(.4,0,.2,1), opacity 0.4s';
+        aboutUsSection.style.overflow = 'hidden';
+        aboutUsSection.style.maxHeight = '0';
+        aboutUsSection.style.opacity = '0';
+        aboutUsSection.classList.add('d-none');
+
+        function toggleAboutUs() {
+            if (aboutUsSection.classList.contains('d-none')) {
+                aboutUsSection.classList.remove('d-none');
+                // Forzar reflow para que la transición funcione
+                void aboutUsSection.offsetWidth;
+                aboutUsSection.style.maxHeight = aboutUsSection.scrollHeight + 'px';
+                aboutUsSection.style.opacity = '1';
+                setTimeout(() => {
+                    const title = aboutUsSection.querySelector('h3');
+                    if (title) {
+                        title.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    } else {
+                        aboutUsSection.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 300);
+            } else {
+                aboutUsSection.style.maxHeight = '0';
+                aboutUsSection.style.opacity = '0';
+                setTimeout(() => {
+                    aboutUsSection.classList.add('d-none');
+                }, 500);
+            }
+        }
+        if (aboutUsBtn) {
+            aboutUsBtn.addEventListener('click', toggleAboutUs);
+        }
+        if (aboutUsShowMoreBtn) {
+            aboutUsShowMoreBtn.addEventListener('click', toggleAboutUs);
+        }
+    }
+});
 
 // --- Google Sign-In ---
 
