@@ -12,24 +12,24 @@ export async function openChatModal(conversationId) {
     
     // Verificamos si el HTML del modal ya existe, si no, lo añadimos.
     if (!document.getElementById('chatModal')) {
-        const modalHtml = `
-            <div class="modal fade" id="chatModal" tabindex="-1">
-              <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-                <div class="modal-content">
-                  <div class="modal-header">
-                    <h5 class="modal-title fw-bold" id="chat-modal-title">Chat con Proveedor</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                  </div>
-                  <div class="modal-body" id="chat-messages-container" style="display: flex; flex-direction: column-reverse; height: 400px; overflow-y: auto;"></div>
-                  <div class="modal-footer">
-                    <form id="chat-send-form" class="w-100 d-flex">
-                      <input type="text" id="chat-message-input" class="form-control me-2" placeholder="Escribe un mensaje..." required>
-                      <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill"></i></button>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            </div>`;
+                        const modalHtml = `
+                                <div class="modal fade" id="chatModal" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title fw-bold" id="chat-modal-title">Chat con Proveedor</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body" id="chat-messages-container" style="display: flex; flex-direction: column-reverse; height: 400px; overflow-y: auto;"></div>
+                                            <div class="modal-footer">
+                                                <form id="chat-send-form" class="w-100 d-flex">
+                                                    <input type="text" id="chat-message-input" class="form-control me-2" placeholder="Escribe un mensaje..." required>
+                                                    <button type="submit" class="btn btn-primary"><i class="bi bi-send-fill"></i></button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         // Añadimos el listener del formulario solo una vez
         setupChatFormListener();

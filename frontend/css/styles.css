@@ -372,3 +372,33 @@ body {
     color: var(--primary-color) !important;
     transform: scale(1.2);
 }
+
+        #chat-messages-container {
+            max-width: 100%;
+            padding-right: 2px;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            word-break: break-word;
+            white-space: pre-line;
+            margin-bottom: 8px;
+            padding: 8px 14px;
+            border-radius: 18px;
+            font-size: 1rem;
+            background: #f5f5f5;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+            align-self: flex-start;
+        }
+        .chat-bubble.sent {
+            background: linear-gradient(90deg,#e0c3fc,#8ec5fc);
+            color: #222;
+            align-self: flex-end;
+        }
+        .chat-bubble.received {
+            background: #fffbe6;
+            color: #222;
+        }
+        .message-content {
+            word-break: break-word;
+            white-space: pre-line;
+        }

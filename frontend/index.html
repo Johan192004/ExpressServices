@@ -14,7 +14,6 @@
     <link rel="stylesheet" href="./css/styles.css">
 </head>
 <body>
-
     <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
         <div class="container">
             <a class="navbar-brand fw-bold text-primary" href="/frontend/index.html">
@@ -26,6 +25,9 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <button class="btn btn-warning btn-glow fw-bold px-3 py-1" id="aboutUsHeaderBtn" style="background: linear-gradient(90deg,#ffb347,#ffcc80); color: #6c3a00; border: none; border-radius: 20px; box-shadow: 0 2px 8px rgba(255,179,71,0.18); font-size: 1rem;">Nosotros</button>
+                </li>
                 </ul>
                 <div id="guest-buttons" class="d-flex ms-lg-3">
                     <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">Ingresar</button>
@@ -48,6 +50,16 @@
         <div class="container text-center">
             <h1 class="display-4 fw-bold text-white mb-4">Encuentra el servicio que necesitas, al instante.</h1>
             <p class="lead text-white-50 mb-5">Conectamos tus necesidades con los mejores profesionales locales.</p>
+            <button class="btn btn-outline-light btn-sm mb-3" id="aboutUsShowMoreBtn">Ver más</button>
+            <div id="aboutUsSection" class="container bg-white rounded shadow-sm p-4 mt-3 d-none" style="max-width: 700px;">
+                <h3 class="fw-bold text-primary mb-3">Acerca de Nosotros</h3>
+                <p class="text-dark">
+                    Express Services nació con la misión de conectar el talento de profesionales locales con las necesidades de los clientes, de una forma rápida, segura y eficiente. Nuestra plataforma permite a los usuarios encontrar y contratar servicios confiables en su ciudad, mientras que los proveedores pueden aumentar su visibilidad y oportunidades laborales. Creemos en el poder de la comunidad y la tecnología para mejorar la vida de las personas.
+                </p>
+                <p class="text-dark">
+                    Valoramos la confianza, la transparencia y la calidad en cada interacción. Nuestro equipo trabaja constantemente para ofrecer una experiencia sencilla, moderna y segura para todos nuestros usuarios.
+                </p>
+            </div>
         </div>
     </header>
 
