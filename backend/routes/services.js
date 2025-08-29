@@ -15,6 +15,9 @@ router.get("/", async (req, res) => {
                      WHERE 1=1`;
         const params = [];
 
+        // Excluir servicios ocultos para el listado público/cliente
+        query += " AND (s.is_hidden IS NULL OR s.is_hidden = FALSE)";
+
         // CAMBIO CLAVE: La búsqueda compleja por nombre se reemplaza por esta simple validación
         if (id_category) {
             query += " AND s.id_category = ?";
@@ -43,10 +46,10 @@ router.get("/my/:id_provider", async (req, res) => {
   try {
     const { id_provider } = req.params;
 
-    const [rows] = await pool.query(`SELECT u.personal_picture, u.full_name AS provider_name,s.id_service,s.name,s.description,s.hour_price,s.creation_date,s.experience_years FROM services s 
+  const [rows] = await pool.query(`SELECT u.personal_picture, u.full_name AS provider_name,s.id_service,s.name,s.description,s.hour_price,s.creation_date,s.experience_years FROM services s 
             INNER JOIN providers p ON s.id_provider=p.id_provider 
             INNER JOIN users u ON p.id_user=u.id_user 
-            WHERE s.id_provider=?`, [id_provider]);
+      WHERE s.id_provider=? AND (s.is_hidden IS NULL OR s.is_hidden = FALSE)`, [id_provider]);
     res.status(200).json(rows);
   } catch (err) {
     console.error("❌ Error al obtener servicios:", err);
@@ -63,7 +66,7 @@ router.get("/:id", async (req, res) => {
                        JOIN providers p ON s.id_provider = p.id_provider
                        JOIN users u ON p.id_user = u.id_user
                        JOIN categories c ON s.id_category = c.id_category
-                       WHERE s.id_service = ?`;
+                       WHERE s.id_service = ? AND (s.is_hidden IS NULL OR s.is_hidden = FALSE)`;
         
         const [rows] = await pool.query(query, [id]);
 
@@ -107,14 +110,16 @@ router.post("/", async (req, res) => {
   }
 });
 
+// Soft delete: marcar el servicio como oculto en lugar de eliminarlo definitivamente
 router.delete("/:id_service", async (req, res) => {
   try {
     const { id_service } = req.params;
 
-    const [result] = await pool.query(`DELETE FROM services WHERE id_service = ?`, [id_service]);
+    const [result] = await pool.query(`UPDATE services SET is_hidden = TRUE WHERE id_service = ?`, [id_service]);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Servicio no encontrado" });
     }
+    // 204 No Content mantiene compatibilidad con el frontend actual
     res.status(204).send();
   } catch (err) {
     console.error("❌ Error al eliminar servicio:", err);
