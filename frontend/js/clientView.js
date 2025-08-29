@@ -5,7 +5,7 @@ import { getServices, getCategories, getClientConversations, startConversation, 
 import { openChatModal } from './ui/chat.js';
 import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
 import { getReviewsByServiceId, postReview } from "./api/reviews.js";
-import { initContractHistory, addContractToHistory, checkAndMoveToHistory } from './contractHistory.js';
+import { initContractHistory } from './contractHistory.js';
 
 // ===================================================================
 // PUNTO DE ENTRADA PRINCIPAL
@@ -1438,14 +1438,9 @@ async function loadAndRenderClientContracts() {
         
         // Filtrar contratos: solo mostrar los que NO están completados por ambas partes
         const activeContracts = allContracts.filter(contract => {
+            // Ocultar contratos completados por ambas partes (el historial lo carga el modal desde backend)
             const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
-            
-            // Si está completado por ambas partes, moverlo al historial y no mostrarlo
-            if (isCompletedByBoth) {
-                checkAndMoveToHistory(contract);
-                return false; // No mostrar en la lista activa
-            }
-            return true; // Mostrar en la lista activa
+            return !isCompletedByBoth;
         });
         
         console.log('=== CONTRATOS ACTIVOS ===');

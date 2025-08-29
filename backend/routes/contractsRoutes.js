@@ -134,6 +134,88 @@ router.get('/', protect, async (req, res) => {
 });
 
 /**
+ * @route   GET /api/contracts/history
+ * @desc    Obtener contratos completados (ambas partes marcaron completado) del usuario actual
+ * @access  Private
+ */
+router.get('/history', protect, async (req, res) => {
+    try {
+        const { id, roles } = req.user;
+        const { selected_rol } = req.query; // opcional: 'client' | 'provider'
+
+        let baseSelect = `
+            SELECT 
+                ct.id_contract, ct.agreed_hours, ct.agreed_price, ct.status,
+                ct.client_marked_completed, ct.provider_marked_completed,
+                GREATEST(ct.client_marked_completed, ct.provider_marked_completed) AS completed_date,
+                s.id_service, s.name as service_name,
+                u_client.full_name as client_name,
+                u_provider.full_name as provider_name
+            FROM contracts ct
+            JOIN services s ON ct.id_service = s.id_service
+            JOIN clients c ON ct.id_client = c.id_client
+            JOIN users u_client ON c.id_user = u_client.id_user
+            JOIN providers p ON s.id_provider = p.id_provider
+            JOIN users u_provider ON p.id_user = u_provider.id_user
+            WHERE ct.client_marked_completed IS NOT NULL 
+              AND ct.provider_marked_completed IS NOT NULL
+        `;
+        let params = [];
+
+        // Filtrado por pertenencia del usuario
+        if (roles.includes('provider') && roles.includes('client')) {
+            if (selected_rol === 'client') {
+                const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
+                if (clientRows.length > 0) {
+                    baseSelect += ' AND ct.id_client = ?';
+                    params.push(clientRows[0].id_client);
+                }
+            } else if (selected_rol === 'provider') {
+                const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
+                if (providerRows.length > 0) {
+                    baseSelect += ' AND s.id_provider = ?';
+                    params.push(providerRows[0].id_provider);
+                }
+            } else {
+                const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
+                const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
+                if (clientRows.length > 0 && providerRows.length > 0) {
+                    baseSelect += ' AND (ct.id_client = ? OR s.id_provider = ?)';
+                    params.push(clientRows[0].id_client, providerRows[0].id_provider);
+                } else if (clientRows.length > 0) {
+                    baseSelect += ' AND ct.id_client = ?';
+                    params.push(clientRows[0].id_client);
+                } else if (providerRows.length > 0) {
+                    baseSelect += ' AND s.id_provider = ?';
+                    params.push(providerRows[0].id_provider);
+                }
+            }
+        } else if (roles.includes('provider')) {
+            const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
+            if (providerRows.length > 0) {
+                baseSelect += ' AND s.id_provider = ?';
+                params.push(providerRows[0].id_provider);
+            }
+        } else if (roles.includes('client')) {
+            const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
+            if (clientRows.length > 0) {
+                baseSelect += ' AND ct.id_client = ?';
+                params.push(clientRows[0].id_client);
+            }
+        } else {
+            return res.status(403).json({ error: 'Usuario sin rol válido.' });
+        }
+
+        baseSelect += ' ORDER BY completed_date DESC';
+        const [rows] = await pool.query(baseSelect, params);
+        res.json(rows);
+    } catch (error) {
+        console.error('Error al obtener historial de contratos:', error);
+        res.status(500).json({ error: 'Error en el servidor.' });
+    }
+});
+
+/**
  * @route   PATCH /api/contracts/:id/respond
  * @desc    Un proveedor acepta o rechaza una oferta
  * @access  Private (Solo Proveedores)

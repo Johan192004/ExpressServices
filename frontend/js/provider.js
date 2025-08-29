@@ -3,7 +3,7 @@
 import { getUserProfile, getMyServices, getCategories, createService, updateService, deleteService, getServiceById, getProviderConversations, respondToContract, getContracts, deleteContract, completeContract } from './api/authService.js';
 import { getProviderById, putProvider } from './api/provider.js';
 import { openChatModal } from './ui/chat.js';
-import { initContractHistory, addContractToHistory, checkAndMoveToHistory } from './contractHistory.js';
+import { initContractHistory } from './contractHistory.js';
 
 let myProviderId = null;
 
@@ -257,15 +257,9 @@ async function loadAndRenderContracts() {
         
         // Filtrar contratos: excluir solo los completados (los ocultos ya los filtra el backend)
         const activeContracts = allContracts.filter(contract => {
+            // Ocultar contratos completados por ambas partes (el historial lo carga el modal desde backend)
             const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
-            
-            // Si está completado por ambas partes, moverlo al historial y no mostrarlo
-            if (isCompletedByBoth) {
-                checkAndMoveToHistory(contract);
-                return false; // No mostrar en la lista activa
-            }
-            
-            return true; // Mostrar en la lista activa
+            return !isCompletedByBoth;
         });
         
         if (activeContracts.length === 0) {
