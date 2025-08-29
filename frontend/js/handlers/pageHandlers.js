@@ -82,10 +82,10 @@ function setupImageFallback(img, providerName, originalSrc, size = 60) {
 
 // Mapa para traducir títulos de la DB (Inglés) a lo que ve el usuario (Español)
 const categoryTranslationMap = {
-    'Plumbing': { name: 'Plomería', icon: 'bi-wrench-adjustable' },
-    'Electricity': { name: 'Electricidad', icon: 'bi-plug-fill' },
-    'Carpentry': { name: 'Carpintería', icon: 'bi-hammer' },
-    'Cleaning': { name: 'Construcción & Remodelación', icon: 'bi-house-up-fill' },
+    'Plomería': { name: 'Plomería', icon: 'bi-wrench-adjustable' },
+    'Electricidad': { name: 'Electricidad', icon: 'bi-plug-fill' },
+    'Carpintería': { name: 'Carpintería', icon: 'bi-hammer' },
+    'Limpieza': { name: 'Limpieza', icon: 'bi-trash-fill' },
     // Si tienes más categorías en tu DB, añade sus traducciones aquí
 };
 

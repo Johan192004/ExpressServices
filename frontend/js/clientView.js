@@ -174,12 +174,12 @@ async function loadAndSetupCategories() {
     const container = document.getElementById('category-container');
     if (!container) return;
     
-    // ▼▼▼ MAPA DE TRADUCCIÓN CORREGIDO Y COMPLETO ▼▼▼
+    // Mapa de traducción basado en los nuevos títulos en español devueltos por la DB
     const categoryTranslationMap = {
-        'Plumbing': { name: 'Plomería', icon: 'bi-wrench-adjustable' },
-        'Electricity': { name: 'Electricidad', icon: 'bi-plug-fill' },
-        'Carpentry': { name: 'Carpintería', icon: 'bi-hammer' },
-        'Cleaning': { name: 'Limpieza', icon: 'bi-trash-fill' }, 
+        'Plomería': { name: 'Plomería', icon: 'bi-wrench-adjustable' },
+        'Electricidad': { name: 'Electricidad', icon: 'bi-plug-fill' },
+        'Carpintería': { name: 'Carpintería', icon: 'bi-hammer' },
+        'Limpieza': { name: 'Limpieza', icon: 'bi-trash-fill' }, 
     };
 
     try {
