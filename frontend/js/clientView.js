@@ -5,6 +5,7 @@ import { getServices, getCategories, getClientConversations, startConversation, 
 import { openChatModal } from './ui/chat.js';
 import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
 import { getReviewsByServiceId, postReview } from "./api/reviews.js";
+import { initContractHistory, addContractToHistory, checkAndMoveToHistory } from './contractHistory.js';
 
 // ===================================================================
 // PUNTO DE ENTRADA PRINCIPAL
@@ -27,7 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     const userProfile = await getUserProfile();
     if (!userProfile.id_client) {
-        showModal('Acceso Denegado', 'Debes tener un perfil de cliente para acceder a esta sección.', 'error', () => {
+        showModal('Acceso Denegado', 'Debes tener un perfil de cliente para acceder a esta sección. Cerraremos tu sesión y te llevaremos al inicio.', 'error', () => {
+            localStorage.removeItem('token');
             window.location.href = '/frontend/index.html';
         });
         return;
@@ -42,6 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCurrentFavorites();
 
     // 4. Cargamos todos los componentes dinámicos de la página
+    initContractHistory(); // Inicializar sistema de historial de contratos
     loadAndRenderClientConversations();
     loadAndSetupCategories();
     setupPageEventListeners();
@@ -1390,11 +1393,11 @@ function setupPageEventListeners() {
             const contractId = deleteContractBtn.dataset.contractId;
             showConfirmModal(
                 'Eliminar Contrato',
-                '¿Estás seguro de que deseas eliminar este contrato de tu historial?',
+                '¿Estás seguro de que deseas eliminar este contrato de tu vista?',
                 async () => {
                     try {
                         await deleteContract(contractId);
-                        showModal('¡Éxito!', 'Contrato eliminado con éxito.', 'success');
+                        showModal('¡Éxito!', 'Contrato eliminado de tu vista.', 'success');
                         loadAndRenderClientContracts(); // Recargamos la lista
                     } catch (error) {
                         showModal('Error', `Error al eliminar: ${error.message}`, 'error');
@@ -1431,29 +1434,36 @@ async function loadAndRenderClientContracts() {
     container.innerHTML = '<p class="text-muted">Cargando contratos...</p>';
 
     try {
-        const contracts = await getContracts({selected_rol: 'client'});
-        console.log('=== CONTRATOS CARGADOS ===');
-        console.log('Número de contratos:', contracts.length);
-        console.log('Primer contrato (ejemplo):', contracts[0]);
-        console.log('Campos del primer contrato:', contracts[0] ? Object.keys(contracts[0]) : 'N/A');
-        console.log('id_service del primer contrato:', contracts[0]?.id_service);
+        const allContracts = await getContracts({selected_rol: 'client'});
+        
+        // Filtrar contratos: solo mostrar los que NO están completados por ambas partes
+        const activeContracts = allContracts.filter(contract => {
+            const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
+            
+            // Si está completado por ambas partes, moverlo al historial y no mostrarlo
+            if (isCompletedByBoth) {
+                checkAndMoveToHistory(contract);
+                return false; // No mostrar en la lista activa
+            }
+            return true; // Mostrar en la lista activa
+        });
+        
+        console.log('=== CONTRATOS ACTIVOS ===');
+        console.log('Total de contratos:', allContracts.length);
+        console.log('Contratos activos:', activeContracts.length);
         console.log('=========================');
         
-        if (contracts.length === 0) {
-            container.innerHTML = '<p class="text-muted">No has enviado ninguna oferta de contrato.</p>';
+        if (activeContracts.length === 0) {
+            container.innerHTML = '<p class="text-muted">No tienes contratos activos.</p>';
             return;
         }
 
         const getContractDisplay = (contract) => {
             let badge = '';
             let actions = '';
-            const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
 
-            // Lógica para determinar el estado y los botones
-            if (isCompletedByBoth) {
-                badge = `<span class="badge bg-primary">Terminado</span>`;
-                actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="${contract.id_contract}">🗑️</button>`;
-            } else if (contract.status === 'accepted') {
+            // Lógica para determinar el estado y los botones (solo contratos activos)
+            if (contract.status === 'accepted') {
                 if (contract.client_marked_completed) {
                     badge = `<span class="badge bg-info">Esperando Proveedor</span>`;
                     actions = ''; // Ya confirmó, no hay más acciones para él
@@ -1477,7 +1487,7 @@ async function loadAndRenderClientContracts() {
         };
 
         container.innerHTML = ''; // Limpiamos el contenedor
-        contracts.forEach(contract => {
+        activeContracts.forEach(contract => {
             const { badge, actions } = getContractDisplay(contract);
             
             container.innerHTML += `
