@@ -79,9 +79,15 @@ function appendMessage(msg, currentUserId) {
     const messageElement = document.createElement('div');
     messageElement.className = `chat-bubble ${isSender ? 'sent' : 'received'}`;
     messageElement.dataset.messageId = msg.id_message; // Agregar ID para tracking
+    const sentRaw = msg.sent_at_co_iso
+        ? msg.sent_at_co_iso
+        : (msg.sent_at_unix ? new Date(msg.sent_at_unix * 1000) : msg.sent_at);
+    const sentAt = sentRaw instanceof Date ? sentRaw : new Date(sentRaw);
+    const timeCO = sentAt.toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' });
+    const fullCO = sentAt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'short', year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' });
     messageElement.innerHTML = `
         <div class="message-content">${msg.content}</div>
-        <div class="message-time">${new Date(msg.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+        <div class="message-time" title="${fullCO}">${timeCO}</div>
     `;
     messagesContainer.prepend(messageElement);
 }
@@ -152,7 +158,7 @@ function startChatPolling(conversationId) {
         } catch (error) {
             console.error('Error al verificar nuevos mensajes:', error);
         }
-    }, 1000); // Cada 1 segundos
+    }, 5000); // Cada 5 segundos
 }
 
 // Función para detener el polling

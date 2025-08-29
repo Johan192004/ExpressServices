@@ -143,11 +143,13 @@ router.get('/history', protect, async (req, res) => {
         const { id, roles } = req.user;
         const { selected_rol } = req.query; // opcional: 'client' | 'provider'
 
-        let baseSelect = `
+    let baseSelect = `
             SELECT 
                 ct.id_contract, ct.agreed_hours, ct.agreed_price, ct.status,
                 ct.client_marked_completed, ct.provider_marked_completed,
                 GREATEST(ct.client_marked_completed, ct.provider_marked_completed) AS completed_date,
+                UNIX_TIMESTAMP(GREATEST(ct.client_marked_completed, ct.provider_marked_completed)) AS completed_date_unix,
+                DATE_FORMAT(CONVERT_TZ(GREATEST(ct.client_marked_completed, ct.provider_marked_completed), @@session.time_zone, '-05:00'), '%Y-%m-%dT%H:%i:%s-05:00') AS completed_date_co_iso,
                 s.id_service, s.name as service_name,
                 u_client.full_name as client_name,
                 u_provider.full_name as provider_name

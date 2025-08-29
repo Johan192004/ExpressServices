@@ -6,7 +6,7 @@ const cors = require("cors");
 dotenv.config();
 
 const app = express();
-const PORT = process.env.EXPRESS_PORT || 3000;
+const PORT = process.env.PORT || process.env.EXPRESS_PORT || 3000;
 
 // --- MIDDLEWARE GLOBALES ---
 app.use(cors());

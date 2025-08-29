@@ -333,7 +333,18 @@ async function loadAndRenderConversations() {
             return;
         }
         conversations.forEach(convo => {
-            container.innerHTML += `<a href="#" class="list-group-item list-group-item-action conversation-item" data-conversation-id="${convo.id_conversation}"><div class="d-flex w-100 justify-content-between"><h6 class="mb-1 fw-bold">${convo.client_name}</h6><small>${new Date(convo.created_at).toLocaleDateString()}</small></div><p class="mb-1 small">Interesado/a en: <strong>${convo.service_name}</strong></p></a>`;
+            const createdRaw = convo.created_at_co_iso || convo.created_at;
+            const createdAt = new Date(createdRaw);
+            const dateCO = createdAt.toLocaleDateString('es-CO', { timeZone: 'America/Bogota' });
+            const fullCO = createdAt.toLocaleString('es-CO', { timeZone: 'America/Bogota', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            container.innerHTML += `
+                <a href="#" class="list-group-item list-group-item-action conversation-item" data-conversation-id="${convo.id_conversation}">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h6 class="mb-1 fw-bold">${convo.client_name}</h6>
+                        <small class="text-muted" title="${fullCO}">${dateCO}</small>
+                    </div>
+                    <p class="mb-1 small">Interesado/a en: <strong>${convo.service_name}</strong></p>
+                </a>`;
         });
     } catch (error) {
         container.innerHTML = '<p class="text-danger">Error al cargar conversaciones.</p>';

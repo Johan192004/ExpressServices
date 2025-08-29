@@ -22,10 +22,11 @@ router.get('/provider', protect, async (req, res) => {
 
         // 2. Obtenemos todas las conversaciones de ese proveedor
         //    y unimos las tablas para obtener datos útiles para la interfaz
-        const [conversations] = await pool.query(
+    const [conversations] = await pool.query(
             `SELECT 
                 convo.id_conversation,
                 convo.created_at,
+        DATE_FORMAT(CONVERT_TZ(convo.created_at, @@session.time_zone, '-05:00'), '%Y-%m-%dT%H:%i:%s-05:00') AS created_at_co_iso,
                 s.name as service_name,
                 u_client.full_name as client_name,
                 u_client.personal_picture as client_picture
@@ -65,10 +66,11 @@ router.get('/client', protect, async (req, res) => {
 
         // 2. Obtenemos todas las conversaciones de ese cliente
         //    y unimos las tablas para obtener el nombre del proveedor y del servicio
-        const [conversations] = await pool.query(
+    const [conversations] = await pool.query(
             `SELECT 
                 convo.id_conversation,
                 convo.created_at,
+        DATE_FORMAT(CONVERT_TZ(convo.created_at, @@session.time_zone, '-05:00'), '%Y-%m-%dT%H:%i:%s-05:00') AS created_at_co_iso,
                 s.name as service_name,
                 u_provider.full_name as provider_name,
                 u_provider.personal_picture as provider_picture
@@ -171,8 +173,13 @@ router.get('/:id/messages', protect, async (req, res) => {
         }
 
         // Si tiene permiso, obtenemos los mensajes y los datos del remitente
-        const [messages] = await pool.query(
-            `SELECT m.*, u.full_name as sender_name, u.personal_picture as sender_picture 
+    const [messages] = await pool.query(
+            `SELECT 
+                m.*, 
+                u.full_name as sender_name, 
+                u.personal_picture as sender_picture,
+        DATE_FORMAT(CONVERT_TZ(m.sent_at, @@session.time_zone, '-05:00'), '%Y-%m-%dT%H:%i:%s-05:00') AS sent_at_co_iso,
+        UNIX_TIMESTAMP(m.sent_at) AS sent_at_unix
              FROM messages m
              JOIN users u ON m.sender_id = u.id_user
              WHERE m.id_conversation = ?
@@ -214,8 +221,13 @@ router.post('/:id/messages', protect, async (req, res) => {
         );
 
         // Devolvemos el mensaje recién creado
-        const [newMessage] = await pool.query(
-            `SELECT m.*, u.full_name as sender_name, u.personal_picture as sender_picture
+    const [newMessage] = await pool.query(
+            `SELECT 
+                m.*, 
+                u.full_name as sender_name, 
+                u.personal_picture as sender_picture,
+        DATE_FORMAT(CONVERT_TZ(m.sent_at, @@session.time_zone, '-05:00'), '%Y-%m-%dT%H:%i:%s-05:00') AS sent_at_co_iso,
+        UNIX_TIMESTAMP(m.sent_at) AS sent_at_unix
              FROM messages m
              JOIN users u ON m.sender_id = u.id_user
              WHERE m.id_message = ?`,

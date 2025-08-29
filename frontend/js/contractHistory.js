@@ -97,7 +97,12 @@ export async function renderContractHistory() {
     }
     
     const historyHTML = history.map(contract => {
-        const completedDate = new Date(contract.completed_date).toLocaleDateString('es-ES', {
+        const raw = contract.completed_date_co_iso
+            ? contract.completed_date_co_iso
+            : (contract.completed_date_unix ? new Date(contract.completed_date_unix * 1000) : contract.completed_date);
+        const dateObj = raw instanceof Date ? raw : new Date(raw);
+        const completedDate = dateObj.toLocaleString('es-CO', {
+            timeZone: 'America/Bogota',
             year: 'numeric',
             month: 'long',
             day: 'numeric',
