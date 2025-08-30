@@ -107,9 +107,9 @@ document.addEventListener('DOMContentLoaded', () => {
 window.onload = async function() {
     const googleBtn = document.getElementById('googleSignInBtn');
     if (googleBtn) {
-        // Obtiene el client ID desde el backend
+        // Obtiene el client ID desde el backend de forma dinámica
         try {
-            const res = await fetch('http://localhost:3030/api/google-client-id');
+            const res = await fetch(`${window.location.origin}/api/google-client-id`);
             const data = await res.json();
             if (data.clientId) {
                 google.accounts.id.initialize({
