@@ -7,8 +7,8 @@ const { protect } = require('../middleware/authMiddleware.js');
 
 /**
  * @route   POST /api/contracts
- * @desc    Un cliente crea una oferta de contrato para un servicio
- * @access  Private (Solo Clientes)
+ * @desc    A client creates a contract offer for a service
+ * @access  Private (Clients only)
  */
 router.post('/', protect, async (req, res) => {
     try {
@@ -44,23 +44,20 @@ router.post('/', protect, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error al crear el contrato:", error);
+    console.error("Error creating contract:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   GET /api/contracts
- * @desc    Obtener todos los contratos de un usuario (cliente o proveedor)
+ * @desc    Get all contracts for the current user (client or provider)
  * @access  Private
  */
 router.get('/', protect, async (req, res) => {
     try {
         const { id, roles } = req.user;
         const { selected_rol } = req.query;
-        console.log('req.user:', req.user);
-        console.log('req.query:', req.query);
-        console.log('selected_rol:', selected_rol);
         let query = `
             SELECT 
                 ct.id_contract, ct.agreed_hours, ct.agreed_price, ct.status, ct.offer_date,
@@ -77,7 +74,7 @@ router.get('/', protect, async (req, res) => {
         `;
         let params = [];
         if (roles.includes('provider') && roles.includes('client')) {
-            // Usuario con ambos roles
+            // User with both roles
             if (selected_rol === "client") {
                 const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
                 if (clientRows.length > 0) {
@@ -91,7 +88,7 @@ router.get('/', protect, async (req, res) => {
                     params.push(providerRows[0].id_provider);
                 }
             } else {
-                // Si no se especifica selected_rol, mostrar todos los contratos del usuario
+                // If selected_rol not provided, show all user's contracts
                 const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
                 const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
                 
@@ -107,7 +104,7 @@ router.get('/', protect, async (req, res) => {
                 }
             }
         } else {
-            // Usuario con un solo rol
+            // User with a single role
             if (roles.includes('provider')) {
                 const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id]);
                 if (providerRows.length > 0) {
@@ -128,14 +125,14 @@ router.get('/', protect, async (req, res) => {
         const [contracts] = await pool.query(query, params);
         res.json(contracts);
     } catch (error) {
-        console.error("Error al obtener contratos:", error);
+    console.error("Error fetching contracts:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   GET /api/contracts/history
- * @desc    Obtener contratos completados (ambas partes marcaron completado) del usuario actual
+ * @desc    Get completed contracts (both parties marked completed) for the current user
  * @access  Private
  */
 router.get('/history', protect, async (req, res) => {
@@ -164,7 +161,7 @@ router.get('/history', protect, async (req, res) => {
         `;
         let params = [];
 
-        // Filtrado por pertenencia del usuario
+    // Filter by user's ownership
         if (roles.includes('provider') && roles.includes('client')) {
             if (selected_rol === 'client') {
                 const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id]);
@@ -212,15 +209,15 @@ router.get('/history', protect, async (req, res) => {
         const [rows] = await pool.query(baseSelect, params);
         res.json(rows);
     } catch (error) {
-        console.error('Error al obtener historial de contratos:', error);
+    console.error('Error fetching contract history:', error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   PATCH /api/contracts/:id/respond
- * @desc    Un proveedor acepta o rechaza una oferta
- * @access  Private (Solo Proveedores)
+ * @desc    A provider accepts or rejects an offer
+ * @access  Private (Providers only)
  */
 router.patch('/:id/respond', protect, async (req, res) => {
     try {
@@ -253,14 +250,14 @@ router.patch('/:id/respond', protect, async (req, res) => {
         await pool.query('UPDATE contracts SET status = ?, response_date = NOW() WHERE id_contract = ?', [action, contractId]);
         res.json({ message: `Oferta ${action === 'accepted' ? 'aceptada' : 'rechazada'} con éxito.` });
     } catch (error) {
-        console.error("Error al responder a la oferta:", error);
+    console.error("Error responding to offer:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   PATCH /api/contracts/:id/complete
- * @desc    Un cliente o proveedor marca un contrato aceptado como completado
+ * @desc    A client or provider marks an accepted contract as completed
  * @access  Private
  */
 router.patch('/:id/complete', protect, async (req, res) => {
@@ -268,7 +265,7 @@ router.patch('/:id/complete', protect, async (req, res) => {
         const { id: contractId } = req.params;
         const { id: userId, roles } = req.user;
 
-        // 1. Obtener el contrato y verificar la pertenencia del usuario
+    // 1. Fetch contract and verify user ownership
         const [contractRows] = await pool.query(
             `SELECT 
                 ct.status, ct.id_client, s.id_provider,
@@ -297,7 +294,7 @@ router.patch('/:id/complete', protect, async (req, res) => {
             return res.status(400).json({ error: 'Solo se pueden completar los contratos aceptados.' });
         }
 
-        // 2. Determinar qué columna actualizar según el rol del usuario
+    // 2. Determine which column to update based on user role
         let columnToUpdate = '';
         if (isClient) {
             columnToUpdate = 'client_marked_completed';
@@ -305,14 +302,14 @@ router.patch('/:id/complete', protect, async (req, res) => {
             columnToUpdate = 'provider_marked_completed';
         }
 
-        // 3. Actualizar el contrato
+    // 3. Update the contract
         const updateQuery = `UPDATE contracts SET ${columnToUpdate} = NOW() WHERE id_contract = ?`;
         await pool.query(updateQuery, [contractId]);
 
         res.json({ message: '¡Servicio marcado como completado! Esperando la confirmación de la otra parte.' });
 
     } catch (error) {
-        console.error("Error al marcar el contrato como completado:", error);
+    console.error("Error marking contract as completed:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
@@ -320,7 +317,7 @@ router.patch('/:id/complete', protect, async (req, res) => {
 
 /**
  * @route   DELETE /api/contracts/:id
- * @desc    Oculta un contrato de la vista del usuario (no lo elimina físicamente)
+ * @desc    Hide a contract from the user's view (does not physically delete)
  * @access  Private
  */
 router.delete('/:id', protect, async (req, res) => {
@@ -328,7 +325,7 @@ router.delete('/:id', protect, async (req, res) => {
         const { id: contractId } = req.params;
         const { id: userId } = req.user;
 
-        // 1. Obtener el contrato y verificar la pertenencia del usuario
+    // 1. Fetch contract and verify user ownership
         const [contractRows] = await pool.query(
             `SELECT 
                 ct.status, ct.client_marked_completed, ct.provider_marked_completed,
@@ -342,7 +339,7 @@ router.delete('/:id', protect, async (req, res) => {
         );
 
         if (contractRows.length === 0) {
-            // No enviar "no encontrado" para no dar pistas, solo un error de permiso.
+            // Do not send "not found" to avoid leaking info; return permission error instead.
             return res.status(403).json({ error: 'No tienes permiso para eliminar este contrato.' });
         }
 
@@ -354,7 +351,7 @@ router.delete('/:id', protect, async (req, res) => {
             return res.status(403).json({ error: 'No tienes permiso para eliminar este contrato.' });
         }
 
-        // 2. Comprobar si el contrato se puede eliminar
+    // 2. Check if contract can be hidden
         const isDenied = contract.status === 'denied';
         const isCompletedByBoth = contract.client_marked_completed !== null && contract.provider_marked_completed !== null;
 
@@ -362,7 +359,7 @@ router.delete('/:id', protect, async (req, res) => {
             return res.status(400).json({ error: 'Este contrato no puede ser eliminado en su estado actual.' });
         }
 
-        // 3. Marcar el contrato como oculto para el rol correspondiente
+    // 3. Mark the contract as hidden for the corresponding role
         if (isClient) {
             await pool.query('UPDATE contracts SET hidden_by_client = TRUE WHERE id_contract = ?', [contractId]);
             res.json({ message: 'Contrato ocultado de tu vista de cliente.' });
@@ -372,29 +369,29 @@ router.delete('/:id', protect, async (req, res) => {
         }
 
     } catch (error) {
-        console.error("Error al ocultar el contrato:", error);
+    console.error("Error hiding contract:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   PATCH /api/contracts/:id/hide
- * @desc    Proveedor oculta un contrato de su vista (no lo elimina)
- * @access  Private (Solo Proveedores)
+ * @desc    Provider hides a contract from their view (does not delete)
+ * @access  Private (Providers only)
  */
 router.patch('/:id/hide', protect, async (req, res) => {
     try {
         const contractId = req.params.id;
         const id_user = req.user.id;
 
-        // Verificar que el usuario es un proveedor
+     // Verify user is a provider
         const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id_user]);
         if (providerRows.length === 0) {
             return res.status(403).json({ error: 'Solo los proveedores pueden ocultar contratos.' });
         }
         const id_provider = providerRows[0].id_provider;
 
-        // Verificar que el contrato existe y pertenece a este proveedor
+     // Verify the contract exists and belongs to this provider
         const [contractRows] = await pool.query(
             `SELECT c.*, s.id_provider 
              FROM contracts c 
@@ -407,7 +404,7 @@ router.patch('/:id/hide', protect, async (req, res) => {
             return res.status(404).json({ error: 'Contrato no encontrado o no tienes permisos para ocultarlo.' });
         }
 
-        // Marcar el contrato como oculto para el proveedor
+     // Mark the contract as hidden for the provider
         await pool.query(
             'UPDATE contracts SET hidden_by_provider = TRUE WHERE id_contract = ?',
             [contractId]
@@ -416,29 +413,29 @@ router.patch('/:id/hide', protect, async (req, res) => {
         res.json({ message: 'Contrato ocultado de tu vista exitosamente.' });
 
     } catch (error) {
-        console.error("Error al ocultar el contrato:", error);
+     console.error("Error hiding contract:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   PATCH /api/contracts/:id/show
- * @desc    Proveedor restaura un contrato oculto en su vista
- * @access  Private (Solo Proveedores)
+ * @desc    Provider restores a previously hidden contract in their view
+ * @access  Private (Providers only)
  */
 router.patch('/:id/show', protect, async (req, res) => {
     try {
         const contractId = req.params.id;
         const id_user = req.user.id;
 
-        // Verificar que el usuario es un proveedor
+     // Verify user is a provider
         const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id_user]);
         if (providerRows.length === 0) {
             return res.status(403).json({ error: 'Solo los proveedores pueden restaurar contratos.' });
         }
         const id_provider = providerRows[0].id_provider;
 
-        // Verificar que el contrato existe y pertenece a este proveedor
+     // Verify the contract exists and belongs to this provider
         const [contractRows] = await pool.query(
             `SELECT c.*, s.id_provider 
              FROM contracts c 
@@ -451,7 +448,7 @@ router.patch('/:id/show', protect, async (req, res) => {
             return res.status(404).json({ error: 'Contrato no encontrado o no tienes permisos para restaurarlo.' });
         }
 
-        // Marcar el contrato como visible para el proveedor
+     // Mark the contract as visible for the provider
         await pool.query(
             'UPDATE contracts SET hidden_by_provider = FALSE WHERE id_contract = ?',
             [contractId]
@@ -460,29 +457,29 @@ router.patch('/:id/show', protect, async (req, res) => {
         res.json({ message: 'Contrato restaurado en tu vista exitosamente.' });
 
     } catch (error) {
-        console.error("Error al restaurar el contrato:", error);
+     console.error("Error restoring contract:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   PATCH /api/contracts/:id/hide-client
- * @desc    Cliente oculta un contrato de su vista (no lo elimina)
- * @access  Private (Solo Clientes)
+ * @desc    Client hides a contract from their view (does not delete)
+ * @access  Private (Clients only)
  */
 router.patch('/:id/hide-client', protect, async (req, res) => {
     try {
         const contractId = req.params.id;
         const id_user = req.user.id;
 
-        // Verificar que el usuario es un cliente
+     // Verify user is a client
         const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id_user]);
         if (clientRows.length === 0) {
             return res.status(403).json({ error: 'Solo los clientes pueden ocultar contratos.' });
         }
         const id_client = clientRows[0].id_client;
 
-        // Verificar que el contrato existe y pertenece a este cliente
+     // Verify the contract exists and belongs to this client
         const [contractRows] = await pool.query(
             `SELECT c.* 
              FROM contracts c 
@@ -494,7 +491,7 @@ router.patch('/:id/hide-client', protect, async (req, res) => {
             return res.status(404).json({ error: 'Contrato no encontrado o no tienes permisos para ocultarlo.' });
         }
 
-        // Marcar el contrato como oculto para el cliente
+     // Mark the contract as hidden for the client
         await pool.query(
             'UPDATE contracts SET hidden_by_client = TRUE WHERE id_contract = ?',
             [contractId]
@@ -518,14 +515,14 @@ router.patch('/:id/show-client', protect, async (req, res) => {
         const contractId = req.params.id;
         const id_user = req.user.id;
 
-        // Verificar que el usuario es un cliente
+    // Verify user is a client
         const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id_user]);
         if (clientRows.length === 0) {
             return res.status(403).json({ error: 'Solo los clientes pueden restaurar contratos.' });
         }
         const id_client = clientRows[0].id_client;
 
-        // Verificar que el contrato existe y pertenece a este cliente
+    // Verify the contract exists and belongs to this client
         const [contractRows] = await pool.query(
             `SELECT c.* 
              FROM contracts c 
@@ -537,7 +534,7 @@ router.patch('/:id/show-client', protect, async (req, res) => {
             return res.status(404).json({ error: 'Contrato no encontrado o no tienes permisos para restaurarlo.' });
         }
 
-        // Marcar el contrato como visible para el cliente
+    // Mark the contract as visible for the client
         await pool.query(
             'UPDATE contracts SET hidden_by_client = FALSE WHERE id_contract = ?',
             [contractId]
@@ -546,28 +543,28 @@ router.patch('/:id/show-client', protect, async (req, res) => {
         res.json({ message: 'Contrato restaurado en tu vista exitosamente.' });
 
     } catch (error) {
-        console.error("Error al restaurar el contrato:", error);
+    console.error("Error restoring contract:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   GET /api/contracts/hidden
- * @desc    Obtener contratos ocultos por el proveedor
- * @access  Private (Solo Proveedores)
+ * @desc    Get contracts hidden by the provider
+ * @access  Private (Providers only)
  */
 router.get('/hidden', protect, async (req, res) => {
     try {
         const id_user = req.user.id;
 
-        // Verificar que el usuario es un proveedor
+     // Verify user is a provider
         const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id_user]);
         if (providerRows.length === 0) {
             return res.status(403).json({ error: 'Solo los proveedores pueden ver contratos ocultos.' });
         }
         const id_provider = providerRows[0].id_provider;
 
-        // Obtener contratos ocultos del proveedor
+     // Get provider's hidden contracts
         const [contracts] = await pool.query(
             `SELECT 
                 c.id_contract,
@@ -592,28 +589,28 @@ router.get('/hidden', protect, async (req, res) => {
         res.json(contracts);
 
     } catch (error) {
-        console.error("Error al obtener contratos ocultos:", error);
+     console.error("Error fetching hidden contracts (provider):", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
 
 /**
  * @route   GET /api/contracts/hidden-client
- * @desc    Obtener contratos ocultos por el cliente
- * @access  Private (Solo Clientes)
+ * @desc    Get contracts hidden by the client
+ * @access  Private (Clients only)
  */
 router.get('/hidden-client', protect, async (req, res) => {
     try {
         const id_user = req.user.id;
 
-        // Verificar que el usuario es un cliente
+     // Verify user is a client
         const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id_user]);
         if (clientRows.length === 0) {
             return res.status(403).json({ error: 'Solo los clientes pueden ver contratos ocultos.' });
         }
         const id_client = clientRows[0].id_client;
 
-        // Obtener contratos ocultos del cliente
+     // Get client's hidden contracts
         const [contracts] = await pool.query(
             `SELECT 
                 c.id_contract,
@@ -638,7 +635,7 @@ router.get('/hidden-client', protect, async (req, res) => {
         res.json(contracts);
 
     } catch (error) {
-        console.error("Error al obtener contratos ocultos:", error);
+     console.error("Error fetching hidden contracts (client):", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });

@@ -1,11 +1,11 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("../models/db"); // aquí importamos la conexión
+const pool = require("../models/db"); // import DB connection
 
 
 router.get("/", async (req, res) => {
     try {
-        // CAMBIO CLAVE: Ahora esperamos 'id_category' en lugar de 'category'
+  // KEY CHANGE: Now expect 'id_category' instead of 'category'
         const { id_category, experience_years, hour_price } = req.query;
 
         let query = `SELECT u.personal_picture, u.full_name AS provider_name, s.id_service, s.name, s.description, s.hour_price, s.creation_date, s.experience_years, u.email, u.phone_number, u.id_user
@@ -15,10 +15,10 @@ router.get("/", async (req, res) => {
                      WHERE 1=1`;
         const params = [];
 
-        // Excluir servicios ocultos para el listado público/cliente
+  // Exclude hidden services from public/client listing
         query += " AND (s.is_hidden IS NULL OR s.is_hidden = FALSE)";
 
-        // CAMBIO CLAVE: La búsqueda compleja por nombre se reemplaza por esta simple validación
+  // KEY CHANGE: Complex name search replaced by this simple validation
         if (id_category) {
             query += " AND s.id_category = ?";
             params.push(parseInt(id_category));
@@ -37,7 +37,7 @@ router.get("/", async (req, res) => {
         const [rows] = await pool.query(query, params);
         res.status(200).json(rows);
     } catch (err) {
-        console.error("❌ Error al obtener servicios:", err);
+  console.error("❌ Error fetching services:", err);
         res.status(500).json({ error: "Error en el servidor" });
     }
 });
@@ -52,12 +52,12 @@ router.get("/my/:id_provider", async (req, res) => {
       WHERE s.id_provider=? AND (s.is_hidden IS NULL OR s.is_hidden = FALSE)`, [id_provider]);
     res.status(200).json(rows);
   } catch (err) {
-    console.error("❌ Error al obtener servicios:", err);
+  console.error("❌ Error fetching services:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
-// --- NUEVA RUTA: Obtener un servicio por su ID ---
+// --- NEW ROUTE: Get a service by ID ---
 router.get("/:id", async (req, res) => {
     try {
         const { id } = req.params;
@@ -75,7 +75,7 @@ router.get("/:id", async (req, res) => {
         }
         res.status(200).json(rows[0]);
     } catch (err) {
-        console.error("❌ Error al obtener el detalle del servicio:", err);
+  console.error("❌ Error fetching service detail:", err);
         res.status(500).json({ error: "Error en el servidor" });
     }
 });
@@ -85,15 +85,15 @@ router.post("/", async (req, res) => {
   try {
     const { id_provider, name, description, hour_price, experience_years, id_category } = req.body;
 
-    // Validar que se reciban todos los campos necesarios
+  // Validate required fields
     if (!id_provider || !name || !description || !hour_price || !experience_years || !id_category) {
       return res.status(400).json({ error: "Faltan campos requeridos" });
     }
 
-    // Insertar el nuevo servicio en la base de datos
+  // Insert new service into the database
     const [result] = await pool.query(`INSERT INTO services (id_provider, name, description, hour_price, experience_years, id_category) VALUES (?, ?, ?, ?, ?, ?)`, [id_provider, name, description, hour_price, experience_years, id_category]);
 
-    // Devolver el servicio creado
+  // Return created service
     const newService = {
       id_service: result.insertId,
       id_provider,
@@ -105,12 +105,12 @@ router.post("/", async (req, res) => {
     };
     res.status(201).json(newService);
   } catch (err) {
-    console.error("❌ Error al publicar servicio:", err);
+  console.error("❌ Error creating service:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
-// Soft delete: marcar el servicio como oculto en lugar de eliminarlo definitivamente
+// Soft delete: mark the service as hidden instead of deleting permanently
 router.delete("/:id_service", async (req, res) => {
   try {
     const { id_service } = req.params;
@@ -119,22 +119,22 @@ router.delete("/:id_service", async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Servicio no encontrado" });
     }
-    // 204 No Content mantiene compatibilidad con el frontend actual
+  // 204 No Content keeps compatibility with the current frontend
     res.status(204).send();
   } catch (err) {
-    console.error("❌ Error al eliminar servicio:", err);
+  console.error("❌ Error deleting service:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });
 
 
-// PUT actualizar servicio
+// PUT update service
 router.put('/:id_service', async (req, res) => {
   try {
     const { id_service } = req.params;
     const { name, description, hour_price, experience_years, id_category } = req.body;
 
-    // Validar que se reciban todos los campos necesarios
+  // Validate required fields
     if (!name || !description || !hour_price || !experience_years || !id_category) {
       return res.status(400).json({ error: "Faltan campos requeridos" });
     }
@@ -157,7 +157,7 @@ router.put('/:id_service', async (req, res) => {
       id_category
     });
   } catch (err) {
-    console.error("❌ Error al actualizar servicio:", err);
+  console.error("❌ Error updating service:", err);
     res.status(500).json({ error: "Error en el servidor" });
   }
 });

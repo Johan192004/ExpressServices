@@ -3,15 +3,15 @@
 import { API_URL } from './config.js';
 
 // ===================================================================
-// FUNCIÓN HELPER CENTRALIZADA PARA PETICIONES CON TOKEN
+// CENTRALIZED HELPER FUNCTION FOR TOKEN-AUTHENTICATED REQUESTS
 // ===================================================================
 
 /**
- * Realiza una petición fetch autenticada. Automáticamente añade el token JWT
- * y maneja el caso de que la sesión haya expirado (error 401).
- * @param {string} endpoint - El endpoint de la API (ej. '/users/profile').
- * @param {object} options - Opciones de Fetch (method, body, etc.).
- * @returns {Promise<any>} La respuesta JSON de la API.
+ * Perform an authenticated fetch request. Automatically attaches the JWT token
+ * and handles the expired session case (401).
+ * @param {string} endpoint - API endpoint (e.g. '/users/profile').
+ * @param {object} options - Fetch options (method, body, etc.).
+ * @returns {Promise<any>} API JSON response.
  */
 async function fetchWithAuth(endpoint, options = {}) {
     const token = localStorage.getItem('token');
@@ -21,14 +21,14 @@ async function fetchWithAuth(endpoint, options = {}) {
         ...options.headers,
     };
 
-    // Si tenemos un token, lo añadimos al header de autorización
+    // If we have a token, add it to the Authorization header
     if (token) {
         headers['Authorization'] = `Bearer ${token}`;
     }
 
     const response = await fetch(`${API_URL}/api${endpoint}`, { ...options, headers });
 
-    // MANEJADOR CENTRALIZADO DE SESIÓN EXPIRADA
+    // CENTRALIZED HANDLER FOR EXPIRED SESSIONS
     if (response.status === 401) {
         localStorage.removeItem('token');
         alert('Tu sesión ha expirado. Por favor, inicia sesión de nuevo.');
@@ -36,7 +36,7 @@ async function fetchWithAuth(endpoint, options = {}) {
         throw new Error('Sesión expirada.');
     }
 
-    // Manejo para respuestas sin contenido como DELETE (status 204)
+    // Handle no-content responses like DELETE (status 204)
     if (response.status === 204) {
         return { success: true };
     }
@@ -59,7 +59,7 @@ export const handleUnauthorized = (response) => {
 };
 
 // ===================================================================
-// FUNCIONES PÚBLICAS (No necesitan token)
+// PUBLIC FUNCTIONS (No token required)
 // ===================================================================
 
 export const loginUser = async (data) => {
@@ -167,7 +167,7 @@ export const putClient = async (id_client, data) => {
 };
 
 // ===================================================================
-// FUNCIONES PROTEGIDAS (Necesitan token y usan el helper)
+// PROTECTED FUNCTIONS (Require token; use the helper)
 // ===================================================================
 
 export const getUserProfile = () => fetchWithAuth('/users/profile');
@@ -181,13 +181,12 @@ export const getMyServices = (providerId) => fetchWithAuth(`/services/my/${provi
 export const startConversation = async (id_service) => {
     const token = localStorage.getItem('token');
 
-    // 1. PRIMERA BARRERA: Si no hay token, fallamos RÁPIDO aquí.
-    //    No necesitamos ni molestar al backend.
+    // 1) FIRST GUARD: If there's no token, fail fast here without hitting the backend.
     if (!token || token === 'null' || token === 'undefined') {
         throw new Error('Debes iniciar sesión para contactar al proveedor.');
     }
 
-    // 2. Si hay un token, AHORA SÍ intentamos la petición.
+    // 2) If there's a token, now perform the request.
     const response = await fetch(`${API_URL}/api/conversations`, {
         method: 'POST',
         headers: {
@@ -197,7 +196,7 @@ export const startConversation = async (id_service) => {
         body: JSON.stringify({ id_service })
     });
     
-    // El helper 'handleUnauthorized' se encargará si el token está vencido.
+    // The 'handleUnauthorized' helper will handle expired tokens if needed.
     handleUnauthorized(response);
 
     const result = await response.json();

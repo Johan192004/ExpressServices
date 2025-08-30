@@ -5,7 +5,7 @@ const bcrypt = require("bcryptjs");
 const { body, validationResult } = require('express-validator');
 const { colombianCities } = require('../utils/locations.js');
 
-// REGLAS DE VALIDACIÓN 
+// VALIDATION RULES 
 
 const clientValidationRules = [
     body('full_name', 'El nombre no es válido')
@@ -50,9 +50,9 @@ const providerValidationRules = [
     body('personal_picture', 'La URL de la foto de perfil debe ser una URL válida').isURL()
 ];
 
-// RUTAS DE REGISTRO (CON VERIFICACIÓN DE CONTRASEÑA)
+// REGISTER ROUTES (WITH PASSWORD CHECK)
 
-// REGISTRO DE PROVEEDOR 
+// PROVIDER REGISTRATION 
 router.post("/provider", providerValidationRules, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -65,7 +65,7 @@ router.post("/provider", providerValidationRules, async (req, res) => {
         const [existingUsers] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
 
         if (existingUsers.length === 0) {
-            // CASO 1: El usuario es completamente nuevo
+            // CASE 1: Brand new user
             const salt = await bcrypt.genSalt(10);
             const password_hash = await bcrypt.hash(password, salt);
 
@@ -79,23 +79,23 @@ router.post("/provider", providerValidationRules, async (req, res) => {
             return res.status(201).json({ message: "Proveedor registrado exitosamente ✅", id_provider: providerResult.insertId });
 
         } else {
-            // CASO 2: El usuario ya existe
+            // CASE 2: User already exists
             const existingUser = existingUsers[0];
             const userId = existingUser.id_user;
 
-            // VERIFICACIÓN DE CONTRASEÑA
+            // PASSWORD VERIFICATION
             const isMatch = await bcrypt.compare(password, existingUser.password_hash);
             if (!isMatch) {
                 return res.status(401).json({ error: "La contraseña es incorrecta. Por favor, verifica tus credenciales." });
             }
 
-            // Verificamos que no tenga ya el rol de proveedor
+            // Ensure the user doesn't already have provider role
             const [existingProviders] = await pool.query("SELECT * FROM providers WHERE id_user = ?", [userId]);
             if (existingProviders.length > 0) {
                 return res.status(409).json({ error: "Este correo ya está registrado como proveedor." });
             }
 
-            //Si todo es correcto, actualizamos el perfil y añadimos el rol
+            // If everything is correct, update profile and add provider role
             await pool.query(
                 "UPDATE users SET full_name = ?, phone_number = ?, personal_picture = ?, city = ?, bio = ? WHERE id_user = ?",
                 [full_name, phone_number, personal_picture, city, bio, userId]
@@ -104,12 +104,12 @@ router.post("/provider", providerValidationRules, async (req, res) => {
             return res.status(201).json({ message: "Perfil de proveedor creado y asociado a tu cuenta existente ✅", id_provider: providerResult.insertId });
         }
     } catch (err) {
-        console.error("Error registrando proveedor:", err);
+        console.error("Error registering provider:", err);
         return res.status(500).json({ error: "Error en el servidor" });
     }
 });
 
-// REGISTRO DE CLIENTE 
+// CLIENT REGISTRATION 
 router.post("/client", clientValidationRules, async (req, res) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -122,7 +122,7 @@ router.post("/client", clientValidationRules, async (req, res) => {
         const [existingUsers] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
 
         if (existingUsers.length === 0) {
-            //  CASO 1: El usuario es completamente nuevo
+            //  CASE 1: Brand new user
             const salt = await bcrypt.genSalt(10);
             const password_hash = await bcrypt.hash(password, salt);
 
@@ -136,28 +136,28 @@ router.post("/client", clientValidationRules, async (req, res) => {
             return res.status(201).json({ message: "Cliente registrado exitosamente ✅", id_client: clientResult.insertId });
 
         } else {
-            // CASO 2: El usuario ya existe
+            // CASE 2: User already exists
             const existingUser = existingUsers[0];
             const userId = existingUser.id_user;
 
-            // VERIFICACIÓN DE CONTRASEÑA
+            // PASSWORD VERIFICATION
             const isMatch = await bcrypt.compare(password, existingUser.password_hash);
             if (!isMatch) {
                 return res.status(401).json({ error: "La contraseña es incorrecta." });
             }
 
-            //Verificamos que no tenga ya el rol de cliente
+            // Ensure the user doesn't already have client role
             const [existingClients] = await pool.query("SELECT * FROM clients WHERE id_user = ?", [userId]);
             if (existingClients.length > 0) {
                 return res.status(409).json({ error: "Este correo ya está registrado como cliente." });
             }
             
-            // Si todo es correcto, añadimos el rol
+            // If everything is correct, add client role
             const [clientResult] = await pool.query("INSERT INTO clients (id_user) VALUES (?)", [userId]);
             return res.status(201).json({ message: "Rol de cliente añadido a tu cuenta existente ✅", id_client: clientResult.insertId });
         }
     } catch (err) {
-        console.error("Error registrando cliente:", err);
+        console.error("Error registering client:", err);
         return res.status(500).json({ error: "Error en el servidor" });
     }
 });

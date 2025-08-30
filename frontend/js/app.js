@@ -41,12 +41,12 @@ function updateNavbar() {
 }
 
 // ===================================================================
-// NUEVAS FUNCIONES PARA GOOGLE SIGN-IN
+// GOOGLE SIGN-IN HELPERS
 // ===================================================================
 
 /**
- * Esta función se ejecuta cuando un usuario inicia sesión con Google correctamente.
- * Recibe un token JWT con la información del usuario.
+ * Runs when a user signs in with Google successfully.
+ * Receives a JWT token with user info.
  */
 async function handleGoogleCredentialResponse(response) {
     const res = await fetch(`${API_URL}/api/login/google`, {
@@ -58,7 +58,7 @@ async function handleGoogleCredentialResponse(response) {
     if (data.token) {
         localStorage.setItem('token', data.token);
         
-        // Redirige según roles
+    // Redirect based on roles
         try {
             const payload = JSON.parse(atob(data.token.split('.')[1]));
             const roles = payload?.user?.roles || [];
@@ -74,12 +74,12 @@ async function handleGoogleCredentialResponse(response) {
         }
     } else {
         const loginResult = document.getElementById('loginResult');
-        if(loginResult) loginResult.innerText = data.error || 'Error de autenticación con Google';
+    if(loginResult) loginResult.innerText = data.error || 'Error de autenticación con Google';
     }
 }
 
 /**
- * Inicializa el servicio de Google y dibuja el botón personalizado.
+ * Initialize Google service and render the custom button.
  */
 async function setupGoogleSignIn() {
     const googleBtnContainer = document.getElementById('googleSignInBtn');
@@ -89,7 +89,7 @@ async function setupGoogleSignIn() {
     }
 
     try {
-        // Obtiene el client ID desde el backend de forma dinámica
+    // Get client ID from backend dynamically
         const res = await fetch(`${API_URL}/api/google-client-id`);
         const data = await res.json();
         
@@ -97,7 +97,7 @@ async function setupGoogleSignIn() {
             google.accounts.id.initialize({
                 client_id: data.clientId,
                 callback: handleGoogleCredentialResponse,
-                auto_select: false, // Desactiva el popup "One Tap"
+                auto_select: false, // Disable "One Tap" popup
                 cancel_on_tap_outside: true, 
                 prompt_parent_id: 'loginModal' 
             });
@@ -107,26 +107,26 @@ async function setupGoogleSignIn() {
                 { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
             );
 
-            // Previene el popup "One Tap" en toda la página
+            // Prevent "One Tap" popup across the page
             google.accounts.id.disableAutoSelect();
 
         } else {
             googleBtnContainer.innerText = 'No se pudo cargar Google Sign-In';
         }
     } catch (err) {
-        console.error("Error al configurar Google Sign-In:", err);
+        console.error("Error setting up Google Sign-In:", err);
         googleBtnContainer.innerText = 'Error al cargar Google Sign-In';
     }
 }
 
 // ===================================================================
-// PUNTO DE ENTRADA PRINCIPAL DEL SCRIPT
+// MAIN SCRIPT ENTRY POINT
 // ===================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
     updateNavbar();
 
-    // Si el usuario ya está logueado y está en el home, redirigir a su vista
+    // If user is logged in and on the home page, redirect to their view
     try {
         const token = localStorage.getItem('token');
         const path = window.location.pathname || '';
@@ -142,12 +142,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     } catch (_) { /* noop */ }
 
-    // Animación suave para mostrar/ocultar sección "Acerca de Nosotros"
+    // Smooth animation for toggling the "About Us" section
     const aboutUsBtn = document.getElementById('aboutUsHeaderBtn');
     const aboutUsShowMoreBtn = document.getElementById('aboutUsShowMoreBtn');
     const aboutUsSection = document.getElementById('aboutUsSection');
     if (aboutUsSection) {
-        // ... (Tu código de animación sigue aquí sin cambios)
+        // ... (Your animation code continues here unchanged)
         aboutUsSection.style.transition = 'max-height 0.5s cubic-bezier(.4,0,.2,1), opacity 0.4s';
         aboutUsSection.style.overflow = 'hidden';
         aboutUsSection.style.maxHeight = '0';
@@ -189,22 +189,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
-// FUNCIÓN PARA EL BOTÓN DE SCROLL HACIA ARRIBA
+// SCROLL-TO-TOP BUTTON
 function setupScrollToTopButton() {
     const scrollToTopBtn = document.getElementById('scroll-to-top');
     if (!scrollToTopBtn) {
-        console.error('Botón scroll-to-top no encontrado');
+        console.error('scroll-to-top button not found');
         return;
     }
-    console.log('Botón de scroll configurado correctamente');
-    // Función simple y directa para scroll
+    console.log('Scroll-to-top button configured');
+    // Simple immediate scroll behavior
     scrollToTopBtn.onclick = function() {
-        console.log('¡Click detectado! Iniciando scroll...');
+        console.log('Click detected! Scrolling to top...');
         document.body.scrollTop = 0; // Para Safari
         document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
-        console.log('Scroll ejecutado');
+        console.log('Scroll executed');
     };
-    // Mostrar/ocultar el botón basado en la posición del scroll
+    // Show/hide button based on scroll position
     window.onscroll = function() {
         if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
             scrollToTopBtn.style.opacity = '1';

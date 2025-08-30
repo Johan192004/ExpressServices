@@ -3,20 +3,20 @@ const jwt = require('jsonwebtoken');
 const protect = (req, res, next) => {
     let token;
 
-    // Buscamos el token en el header 'Authorization'
+    // Look for the token in the 'Authorization' header
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
         try {
-            // 1. Obtenemos el token del header (formato "Bearer TOKEN")
+                // 1. Extract token from header (format "Bearer TOKEN")
             token = req.headers.authorization.split(' ')[1];
 
-            // 2. Verificamos el token con nuestra clave secreta
+                // 2. Verify the token using our secret key
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            // 3. Adjuntamos el payload del token (que contiene id y rol del usuario)
-            //    a la petición para que las siguientes funciones puedan usarlo.
+                // 3. Attach the token payload (contains user id and roles)
+                //    to the request for downstream handlers to use.
             req.user = decoded.user;
 
-            // 4. Continuamos hacia la siguiente función (la ruta protegida)
+                // 4. Continue to next handler (protected route)
             next();
 
         } catch (error) {
