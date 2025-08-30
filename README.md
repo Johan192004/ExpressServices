@@ -1,8 +1,24 @@
 # ExpressServices
 
-A services marketplace connecting clients and providers. Built with Node.js/Express, MySQL, and a framework-free web frontend (vanilla JS + Bootstrap).
 
-It includes in-app chat, contracts with offer/accept/complete flow, favorites, reviews, JWT auth and Google Sign-In, plus password reset via email.
+ExpressServices is a two-sided marketplace that streamlines the end-to-end process of discovering, negotiating, and completing service work. Clients browse and filter services, open a conversation with a provider to align scope and availability, and then formalize the engagement as a contract. Providers manage their portfolio of services, respond to offers, and build reputation through reviews.
+
+The application is designed to be simple to deploy and easy to maintain: a single Express API backed by MySQL, a lightweight frontend using vanilla ES modules and Bootstrap, and minimal dependencies. It favors explicit SQL queries and small, well-scoped endpoints over heavy abstractions so the behavior is transparent and auditable.
+
+Primary user flows
+- Authentication and role selection: email/password or Google Sign-In. A single account can hold both roles; when both exist, the client view is the default landing.
+- Service discovery: filter by category, experience years, and hourly rate. Soft-deleted services are permanently hidden from client-facing listings and detail views.
+- Conversations and messaging: per-service threads between client and provider. Timestamps are normalized to America/Bogota; conversation lists show dates, while individual messages retain precise times.
+- Contracts lifecycle: the client creates an offer with agreed hours; the provider accepts or denies; both parties can mark completion. Either side can hide contracts from their view without deleting underlying data.
+- Reputation and curation: clients can favorite services and leave reviews with star ratings and comments after completion.
+- Account recovery and security: password reset via email, protected endpoints using JWT, and input validation on authentication and registration.
+
+Design choices that matter
+- Soft delete by default for services (`is_hidden`) to preserve history and avoid accidental data loss.
+- Per-role visibility flags on contracts (`hidden_by_client`, `hidden_by_provider`) for non-destructive hiding.
+- Timezone normalization to Colombia for consistent, user-expected timestamps across the app.
+- Separation of concerns for texts: developer comments/logs are in English, while API/UI-facing messages remain in Spanish.
+- Google Sign-In support with transactional user creation to ensure role integrity on first login.
 
 
 ## Key features
@@ -28,12 +44,16 @@ It includes in-app chat, contracts with offer/accept/complete flow, favorites, r
 	- Secure link delivery, token and expiration.
 
 
-## Architecture and stack
+## Technologies used
 
-- Backend: Node.js + Express 5, JWT, mysql2, express-validator, nodemailer, Google Auth Library.
-- Database: MySQL (direct SQL with mysql2/promise).
-- Frontend: HTML/CSS/JS (ES modules), Bootstrap 5, Bootstrap Icons.
-- Time handling: normalization to Colombia timezone (UTC-05:00) in key endpoints.
+- Platform: Node.js + Express
+- Database: MySQL (mysql2/promise)
+- Auth: JSON Web Tokens (JWT), Google Sign-In (Google Auth Library)
+- Validation: express-validator
+- Email: nodemailer
+- Frontend: HTML, CSS, vanilla JavaScript (ES modules), Bootstrap 5, Bootstrap Icons
+- Utilities: dotenv, CORS
+- Time handling: normalization to Colombia timezone (UTC-05:00) in key endpoints
 
 
 ## Folder structure
@@ -84,7 +104,7 @@ README.md
 ```
 
 
-## Quick setup
+## How to run
 
 1) Requirements
 - Node.js 18+ and npm.
@@ -218,3 +238,12 @@ By default the API is exposed on `http://localhost:3000`.
 - MySQL connection: check `.env` credentials and ensure MySQL is running.
 - Google Sign-In: verify `GOOGLE_CLIENT_ID` and allowed origin in Google console.
 - Email sending: use Gmail App Passwords or another SMTP provider.
+
+
+## Credits
+
+- Brahiam Ruiz Alzate (Product Owner)
+- Johan Ramírez Marín (Scrum Master)
+- Andrés Felipe Marín Patiño (Developer)
+- Juan Daniel Rúa Marín (Developer)
+- Juan Manuel Arango Arana (Developer)
