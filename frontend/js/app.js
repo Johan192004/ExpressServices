@@ -1,4 +1,4 @@
-import { API_URL } from './js/api/config.js';
+import { API_URL } from './api/config.js';
 function updateNavbar() {
     const token = localStorage.getItem('token');
     const guestButtons = document.getElementById('guest-buttons');
