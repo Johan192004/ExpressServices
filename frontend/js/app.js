@@ -31,7 +31,7 @@ function updateNavbar() {
 
         document.getElementById('logout-btn').addEventListener('click', () => {
             localStorage.removeItem('token');
-            window.location.href = '/frontend/index.html'; 
+            window.location.href = '/index.html'; 
         });
     } else {
         guestButtons.classList.remove('d-none');
@@ -41,6 +41,22 @@ function updateNavbar() {
 
 document.addEventListener('DOMContentLoaded', () => {
     updateNavbar();
+
+    // Si el usuario ya está logueado y está en el home, redirigir a su vista
+    try {
+        const token = localStorage.getItem('token');
+        const path = window.location.pathname || '';
+        const isHome = path === '/' || path.endsWith('/index.html');
+        if (token && isHome) {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const roles = payload?.user?.roles || [];
+            if (roles.includes('client')) {
+                window.location.href = '/frontend/views/private/client.html';
+            } else if (roles.includes('provider')) {
+                window.location.href = '/frontend/views/private/provider.html';
+            }
+        }
+    } catch (_) { /* noop */ }
 
     // Animación suave para mostrar/ocultar sección "Acerca de Nosotros"
     const aboutUsBtn = document.getElementById('aboutUsHeaderBtn');
@@ -122,7 +138,20 @@ async function handleGoogleCredentialResponse(response) {
     const data = await res.json();
     if (data.token) {
         localStorage.setItem('token', data.token);
-    window.location.href = '/frontend/views/private/client.html';
+        // Redirige según roles (cliente por defecto si tiene ambos)
+        try {
+            const payload = JSON.parse(atob(data.token.split('.')[1]));
+            const roles = payload?.user?.roles || [];
+            if (roles.includes('client')) {
+                window.location.href = '/frontend/views/private/client.html';
+            } else if (roles.includes('provider')) {
+                window.location.href = '/frontend/views/private/provider.html';
+            } else {
+                window.location.href = '/index.html';
+            }
+        } catch (_) {
+            window.location.href = '/index.html';
+        }
     } else {
         document.getElementById('loginResult').innerText = data.error || 'Error de autenticación con Google';
     }
