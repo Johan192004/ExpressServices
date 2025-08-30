@@ -82,7 +82,8 @@ if (loginForm) {
                         window.location.href = '/frontend/views/private/provider.html';
                     } else {
                         // Si por alguna razón no tiene rol, recargamos el index
-                        window.location.href = '/frontend/index.html';
+                        window.localStorage.clear();
+                        window.location.href = '/index.html';
                     }
                 }, 1000);
 

@@ -214,8 +214,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!userProfile.id_provider) {
             showModal('Acceso Denegado', 'Debes tener un perfil de proveedor para acceder a esta sección. Cerraremos tu sesión y te llevaremos al inicio.', 'error', () => {
                 // Cerrar sesión para que en index se muestren los botones de invitado
-                localStorage.removeItem('token');
-                window.location.href = '/frontend/index.html';
+                localStorage.clear();
+                window.location.href = '/index.html';
             });
             return;
         }
@@ -224,8 +224,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         await main(userProfile);
     } catch (error) {
         console.error("Error de autenticación:", error);
-        localStorage.removeItem('token');
-        window.location.href = '/frontend/index.html';
+        localStorage.clear();
+    window.location.href = '/index.html';
     }
 });
 
@@ -853,8 +853,8 @@ const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
         e.preventDefault();
-        localStorage.removeItem('token');
-        window.location.href = '/frontend/index.html';
+        localStorage.clear()
+    window.location.href = '/index.html';
     });
 }
 

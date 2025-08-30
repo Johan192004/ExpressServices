@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 1. Verificamos si el usuario tiene permiso para estar aquí
     if (!localStorage.getItem('token')) {
         showModal('Acceso Denegado', 'Debes iniciar sesión para acceder a esta página.', 'warning', () => {
-            window.location.href = '/frontend/index.html';
+            window.localStorage.clear();
+            window.location.href = '/index.html';
         });
         return;
     }
@@ -29,8 +30,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const userProfile = await getUserProfile();
     if (!userProfile.id_client) {
         showModal('Acceso Denegado', 'Debes tener un perfil de cliente para acceder a esta sección. Cerraremos tu sesión y te llevaremos al inicio.', 'error', () => {
-            localStorage.removeItem('token');
-            window.location.href = '/frontend/index.html';
+            localStorage.clear();
+            window.location.href = '/index.html';
         });
         return;
     }
