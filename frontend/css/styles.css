@@ -1,3 +1,38 @@
+/* Ajuste específico para header en index y clientes en móviles */
+@media (max-width: 991.98px) {
+    #navbarNav {
+        width: 100%;
+    }
+    .navbar-nav {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 0.7rem;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    #aboutUsHeaderBtn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    #guest-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    #user-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    #contract-history-btn, #show-favorites-btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
 /* ======== GENERAL STYLES & FONTS ======== */
 
 html, body {
@@ -249,14 +284,43 @@ body {
 
 /* Contenedor general de los botones de usuario */
 #user-buttons {
-    gap: 0.3rem; 
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
+@media (max-width: 991.98px) {
+    #user-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    #user-buttons > * {
+        width: 100%;
+        min-width: 0;
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+    }
+    #profile-link, #profile-dropdown {
+        width: 100%;
+        text-align: left;
+    }
+    #switch-mode-btn {
+        width: 100%;
+    }
+}
+
+/* Ajuste para perfil en móviles */
 #profile-link {
     padding: 0.5rem 0.8rem;
     border-radius: 8px;
     transition: all 0.2s ease-in-out;
     color: var(--dark-gray);
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #profile-link:hover {

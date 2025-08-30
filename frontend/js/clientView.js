@@ -1624,9 +1624,7 @@ function setupProfileModal() {
     }
 }
 
-// ===================================================================
 // FUNCIÓN PARA EL BOTÓN DE SCROLL HACIA ARRIBA
-// ===================================================================
 function setupScrollToTopButton() {
     const scrollToTopBtn = document.getElementById('scroll-to-top');
     
