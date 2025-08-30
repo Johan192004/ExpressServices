@@ -114,11 +114,12 @@ window.onload = async function() {
             if (data.clientId) {
                 google.accounts.id.initialize({
                     client_id: data.clientId,
-                    callback: handleGoogleCredentialResponse
+                    callback: handleGoogleCredentialResponse,
+                    auto_select: false // Desactiva selección automática de cuenta
                 });
                 google.accounts.id.renderButton(
                     googleBtn,
-                    { theme: 'outline', size: 'large' }
+                    { theme: 'outline', size: 'large', text: 'signin_with' } // Botón genérico
                 );
             } else {
                 googleBtn.innerText = 'No se pudo cargar Google Sign-In';
