@@ -88,16 +88,33 @@ backend/
 
 frontend/
 	reset-password.html
-	css/styles.css
+	css/
+        styles.css
 	js/
-		app.js, main.js
-		clientView.js, provider.js, contractHistory.js, reset-password.js
-		api/ authService.js, config.js, favorites.js, provider.js, reviews.js
-		handlers/ authHandlers.js, modalHandlers.js, pageHandlers.js
-		ui/ chat.js
-		utils/ modalUtils.js
-	views/private/
-		client.html, provider.html
+		app.js
+        main.js
+		clientView.js 
+        provider.js 
+        contractHistory.js 
+        reset-password.js
+		api/ 
+            authService.js 
+            config.js 
+            favorites.js 
+            provider.js 
+            reviews.js
+		handlers/ 
+            authHandlers.js 
+            modalHandlers.js
+            pageHandlers.js
+		ui/ 
+            chat.js
+		utils/ 
+            modalUtils.js
+	views/
+        private/
+		    client.html
+            provider.html
 
 package.json
 README.md
