@@ -1,4 +1,4 @@
-
+import { API_URL } from './js/api/config.js';
 function updateNavbar() {
     const token = localStorage.getItem('token');
     const guestButtons = document.getElementById('guest-buttons');
@@ -109,7 +109,7 @@ window.onload = async function() {
     if (googleBtn) {
         // Obtiene el client ID desde el backend de forma dinámica
         try {
-            const res = await fetch(`${window.location.origin}/api/google-client-id`);
+            const res = await fetch(`${API_URL}/api/google-client-id`);
             const data = await res.json();
             if (data.clientId) {
                 google.accounts.id.initialize({
@@ -130,7 +130,7 @@ window.onload = async function() {
 };
 
 async function handleGoogleCredentialResponse(response) {
-    const res = await fetch('http://localhost:3030/api/login/google', {
+    const res = await fetch(`${API_URL}/api/login/google`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: response.credential })
