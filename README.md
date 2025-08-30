@@ -1,6 +1,12 @@
 # ExpressServices
 
 
+
+## Live site
+
+The application is deployed at: [https://expressservices.onrender.com/](https://expressservices.onrender.com/)
+
+
 ExpressServices is a two-sided marketplace that streamlines the end-to-end process of discovering, negotiating, and completing service work. Clients browse and filter services, open a conversation with a provider to align scope and availability, and then formalize the engagement as a contract. Providers manage their portfolio of services, respond to offers, and build reputation through reviews.
 
 The application is designed to be simple to deploy and easy to maintain: a single Express API backed by MySQL, a lightweight frontend using vanilla ES modules and Bootstrap, and minimal dependencies. It favors explicit SQL queries and small, well-scoped endpoints over heavy abstractions so the behavior is transparent and auditable.
