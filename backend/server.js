@@ -2,17 +2,17 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 
-// Carga las variables de entorno desde el archivo .env
+// Load environment variables from .env
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || process.env.EXPRESS_PORT || 3000;
 
-// --- MIDDLEWARE GLOBALES ---
+// --- Global middleware ---
 app.use(cors());
 app.use(express.json());
 
-// --- IMPORTACIÓN DE RUTAS ---
+// --- Routes import ---
 const registerRoutes = require("./routes/registers.js");
 const loginRoutes = require("./routes/login.js");
 const serviceRoutes = require("./routes/services.js");
@@ -28,7 +28,7 @@ const providerRoutes = require('./routes/providers.js');
 const reviewsRoutes = require('./routes/reviews.js');
 
 
-// --- DEFINICIÓN DE ENDPOINTS ---
+// --- Define endpoints ---
 app.use("/api/register", registerRoutes);
 app.use("/api/login", loginRoutes);
 app.use("/api/services", serviceRoutes);
@@ -43,19 +43,19 @@ app.use('/api/clients', clientsRoutes);
 app.use('/api/providers', providerRoutes);
 app.use('/api/reviews', reviewsRoutes);
 
-// Endpoint para exponer el GOOGLE_CLIENT_ID al frontend
+// Endpoint to expose GOOGLE_CLIENT_ID to the frontend
 app.get('/api/google-client-id', (req, res) => {
   res.json({ clientId: process.env.GOOGLE_CLIENT_ID });
 });
 
-// --- INICIO DEL SERVIDOR ---
+// --- Start server ---
 app.listen(PORT, (err) => {
   if (err) {
-    console.error('❌ Error al iniciar el servidor:', err.message);
+    console.error('❌ Error starting server:', err.message);
     if (err.code === 'EADDRINUSE') {
-      console.error(`El puerto ${PORT} ya está en uso`);
+      console.error(`Port ${PORT} is already in use`);
     }
     return;
   }
-  console.log(`Servidor corriendo en el puerto ${PORT} ✅`);
+  console.log(`Server running on port ${PORT} ✅`);
 });

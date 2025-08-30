@@ -4,13 +4,13 @@ import { showAlert } from '../utils/modalUtils.js';
 
 let currentConversationId = null;
 let chatPollingInterval = null;
-let lastMessageId = null; // Para trackear el último mensaje cargado
+let lastMessageId = null; // Track the last loaded message
 
-// Función para abrir el modal del chat y cargar los mensajes
+// Open the chat modal and load messages
 export async function openChatModal(conversationId) {
     currentConversationId = conversationId;
     
-    // Verificamos si el HTML del modal ya existe, si no, lo añadimos.
+    // If modal HTML doesn't exist yet, inject it
     if (!document.getElementById('chatModal')) {
                         const modalHtml = `
                                 <div class="modal fade" id="chatModal" tabindex="-1">
@@ -31,9 +31,9 @@ export async function openChatModal(conversationId) {
                                     </div>
                                 </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
-        // Añadimos el listener del formulario solo una vez
+    // Add form listener only once
         setupChatFormListener();
-        // Configurar eventos del modal
+    // Configure modal events
         setupModalEvents();
     }
     
@@ -44,16 +44,16 @@ export async function openChatModal(conversationId) {
     chatModal.show();
 
     try {
-        // Cargar mensajes iniciales
+        // Load initial messages
         await loadInitialMessages(conversationId);
-        // Iniciar polling para nuevos mensajes
+        // Start polling for new messages
         startChatPolling(conversationId);
     } catch (error) {
         messagesContainer.innerHTML = `<p class="text-center text-danger">${error.message}</p>`;
     }
 }
 
-// Función para mostrar los mensajes en el contenedor
+// Render messages in the container
 function renderMessages(messages) {
     const messagesContainer = document.getElementById('chat-messages-container');
     if (messages.length === 0) {
@@ -61,7 +61,7 @@ function renderMessages(messages) {
         return;
     }
 
-    messagesContainer.innerHTML = ''; // Limpiamos el contenedor
+    messagesContainer.innerHTML = ''; // Clear container
     const token = localStorage.getItem('token');
     if (!token) return;
     const payload = JSON.parse(atob(token.split('.')[1]));
@@ -72,13 +72,13 @@ function renderMessages(messages) {
     });
 }
 
-// Función para AÑADIR un mensaje a la vista
+// Append a single message to the view
 function appendMessage(msg, currentUserId) {
     const messagesContainer = document.getElementById('chat-messages-container');
     const isSender = msg.sender_id === currentUserId;
     const messageElement = document.createElement('div');
     messageElement.className = `chat-bubble ${isSender ? 'sent' : 'received'}`;
-    messageElement.dataset.messageId = msg.id_message; // Agregar ID para tracking
+    messageElement.dataset.messageId = msg.id_message; // Add ID for tracking
     const sentRaw = msg.sent_at_co_iso
         ? msg.sent_at_co_iso
         : (msg.sent_at_unix ? new Date(msg.sent_at_unix * 1000) : msg.sent_at);
@@ -92,7 +92,7 @@ function appendMessage(msg, currentUserId) {
     messagesContainer.prepend(messageElement);
 }
 
-// Función para manejar el envío de mensajes
+// Handle message sending
 function setupChatFormListener() {
     const chatForm = document.getElementById('chat-send-form');
     const messageInput = document.getElementById('chat-message-input');
@@ -111,16 +111,15 @@ function setupChatFormListener() {
             const payload = JSON.parse(atob(token.split('.')[1]));
             appendMessage(newMessage, payload.user.id);
             
-            // NO actualizar lastMessageId aquí para permitir que el polling 
-            // detecte tanto nuestro mensaje como cualquier mensaje nuevo del otro usuario
+            // Don't update lastMessageId here so polling can detect this and remote messages
             messageInput.value = '';
             
-            // Forzar una verificación inmediata de mensajes nuevos
+            // Force a near-term check for new messages
             setTimeout(() => {
                 if (currentConversationId) {
                     checkForNewMessages(currentConversationId);
                 }
-            }, 1000); // Verificar después de 1 segundo
+            }, 1000); // Check after 1 second
             
         } catch (error) {
             await showAlert(`Error al enviar mensaje: ${error.message}`, 'error');
@@ -132,104 +131,104 @@ function setupChatFormListener() {
 }
 
 // ===================================================================
-// FUNCIONES DE POLLING PARA MENSAJES EN TIEMPO REAL
+// POLLING FUNCTIONS FOR NEAR-REAL-TIME MESSAGES
 // ===================================================================
 
-// Función para cargar mensajes iniciales
+// Load initial messages
 async function loadInitialMessages(conversationId) {
     const messages = await getMessages(conversationId);
     renderMessages(messages);
-    // Guardar el ID del último mensaje
+    // Store the last message ID
     if (messages.length > 0) {
         lastMessageId = messages[messages.length - 1].id_message;
     }
 }
 
-// Función para iniciar el polling de nuevos mensajes
+// Start polling for new messages
 function startChatPolling(conversationId) {
-    // Limpiar cualquier polling anterior
+    // Clear any previous polling
     stopChatPolling();
     
-    console.log('🔄 Iniciando polling de chat cada 5 segundos...');
+    console.log('🔄 Starting chat polling every 5 seconds...');
     
     chatPollingInterval = setInterval(async () => {
         try {
             await checkForNewMessages(conversationId);
         } catch (error) {
-            console.error('Error al verificar nuevos mensajes:', error);
+            console.error('Error checking new messages:', error);
         }
-    }, 5000); // Cada 5 segundos
+    }, 5000); // Every 5 seconds
 }
 
-// Función para detener el polling
+// Stop polling
 function stopChatPolling() {
     if (chatPollingInterval) {
         clearInterval(chatPollingInterval);
         chatPollingInterval = null;
-        console.log('⏹️ Polling de chat detenido');
+        console.log('⏹️ Chat polling stopped');
     }
 }
 
-// Función para verificar y cargar solo mensajes nuevos
+// Check and append only new messages
 async function checkForNewMessages(conversationId) {
     try {
         const allMessages = await getMessages(conversationId);
         
-        // Si no hay mensajes o no tenemos referencia del último
+        // If no messages or no last reference
         if (!allMessages.length || !lastMessageId) {
             return;
         }
         
-        // Obtener todos los IDs de mensajes que ya están en el DOM para evitar duplicados
+        // Collect existing DOM message IDs to avoid duplicates
         const existingMessageIds = Array.from(document.querySelectorAll('.chat-bubble')).map(bubble => {
             return bubble.dataset.messageId;
-        }).filter(id => id); // Filtrar IDs válidos
+        }).filter(id => id); // Keep only valid IDs
         
-        // Encontrar mensajes nuevos (posteriores al último que tenemos)
+        // Find new messages (after the last we have)
         const lastMessageIndex = allMessages.findIndex(msg => msg.id_message === lastMessageId);
         
         if (lastMessageIndex === -1) {
-            // El último mensaje que teníamos ya no existe, recargar todo
-            console.log('🔄 Recargando todos los mensajes...');
+            // Last message reference no longer exists, reload all
+            console.log('🔄 Reloading all messages...');
             renderMessages(allMessages);
             lastMessageId = allMessages.length > 0 ? allMessages[allMessages.length - 1].id_message : null;
             return;
         }
         
-        // Obtener mensajes nuevos y filtrar los que ya están en el DOM
+        // Slice new messages and filter out ones already in the DOM
         const newMessages = allMessages.slice(lastMessageIndex + 1).filter(msg => {
             return !existingMessageIds.includes(msg.id_message.toString());
         });
         
         if (newMessages.length > 0) {
-            console.log(`📨 ${newMessages.length} nuevo(s) mensaje(s) recibido(s)`);
+            console.log(`✉️ ${newMessages.length} new message(s) received`);
             
             const token = localStorage.getItem('token');
             const payload = JSON.parse(atob(token.split('.')[1]));
             const currentUserId = payload.user.id;
             
-            // Agregar solo los mensajes nuevos
+            // Append only the new messages
             newMessages.forEach(msg => {
                 appendMessage(msg, currentUserId);
             });
             
-            // Actualizar el último ID de mensaje al más reciente de todos los mensajes
+            // Update lastMessageId to the most recent in the list
             lastMessageId = allMessages[allMessages.length - 1].id_message;
         }
     } catch (error) {
-        console.error('Error al verificar nuevos mensajes:', error);
+        console.error('Error checking new messages:', error);
     }
 }
 
-// Función para configurar eventos del modal
+// Set up modal events
 function setupModalEvents() {
     const chatModal = document.getElementById('chatModal');
     
-    // Detener polling cuando se cierre el modal
+    // Stop polling when modal closes
     chatModal.addEventListener('hidden.bs.modal', () => {
         stopChatPolling();
         currentConversationId = null;
         lastMessageId = null;
-        console.log('💬 Chat cerrado, polling detenido');
+        console.log('💬 Chat closed, polling stopped');
     });
 }

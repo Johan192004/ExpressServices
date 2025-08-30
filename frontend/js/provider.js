@@ -3,197 +3,79 @@
 import { getUserProfile, getMyServices, getCategories, createService, updateService, deleteService, getServiceById, getProviderConversations, respondToContract, getContracts, deleteContract, completeContract } from './api/authService.js';
 import { getProviderById, putProvider } from './api/provider.js';
 import { openChatModal } from './ui/chat.js';
+import { showAlert, showConfirm, cleanupModalBackdrops as cleanupModalBackdropsUtil } from './utils/modalUtils.js';
 import { initContractHistory } from './contractHistory.js';
 
 let myProviderId = null;
 
 // ===================================================================
-// FUNCIONES DE MODALES PERSONALIZADOS
+// CUSTOM MODAL HELPERS (delegating to shared utils)
 // ===================================================================
 
 /**
- * Función utilitaria para limpiar backdrops residuales de Bootstrap modals
+ * Utility to clean residual Bootstrap modal backdrops
  */
 function cleanupModalBackdrops() {
-    // Remover todos los backdrops
-    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-    
-    // Restaurar el estado del body
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('padding-right');
-    document.body.style.removeProperty('overflow');
+    try {
+        cleanupModalBackdropsUtil();
+    } catch (_) {
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+    }
 }
 
 /**
- * Muestra un modal personalizado en lugar de alert()
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de modal: 'success', 'error', 'warning', 'info'
- * @param {function} onConfirm - Función a ejecutar al hacer clic en "Aceptar" (opcional)
+ * Show a custom modal instead of alert()
+ * @param {string} title - Modal title
+ * @param {string} message - Message to display
+ * @param {string} type - Modal type: 'success', 'error', 'warning', 'info'
+ * @param {function} onConfirm - Callback on confirm (optional)
  */
 function showModal(title, message, type = 'info', onConfirm = null) {
-    // Limpiar modal anterior si existe
-    const existingModal = document.getElementById('customModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Definir colores y iconos según el tipo
-    const modalConfig = {
-        success: {
-            headerClass: 'bg-success text-white',
-            icon: 'bi-check-circle-fill',
-            iconColor: 'text-success',
-            buttonClass: 'btn-success'
-        },
-        error: {
-            headerClass: 'bg-danger text-white',
-            icon: 'bi-exclamation-triangle-fill',
-            iconColor: 'text-danger',
-            buttonClass: 'btn-danger'
-        },
-        warning: {
-            headerClass: 'bg-warning text-dark',
-            icon: 'bi-exclamation-triangle-fill',
-            iconColor: 'text-warning',
-            buttonClass: 'btn-warning'
-        },
-        info: {
-            headerClass: 'bg-primary text-white',
-            icon: 'bi-info-circle-fill',
-            iconColor: 'text-primary',
-            buttonClass: 'btn-primary'
-        }
-    };
-    
-    const config = modalConfig[type] || modalConfig.info;
-    
-    const modalHtml = `
-        <div class="modal fade" id="customModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header ${config.headerClass}">
-                        <h5 class="modal-title">
-                            <i class="bi ${config.icon} me-2"></i>
-                            ${title}
-                        </h5>
-                    </div>
-                    <div class="modal-body text-center py-4">
-                        <i class="bi ${config.icon} ${config.iconColor}" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
-                    </div>
-                    <div class="modal-footer justify-content-center border-0">
-                        <button type="button" class="btn ${config.buttonClass} px-4" id="customModalConfirm">Aceptar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = new bootstrap.Modal(document.getElementById('customModal'));
-    modal.show();
-    
-    // Manejar el botón de confirmación
-    document.getElementById('customModalConfirm').addEventListener('click', () => {
-        modal.hide();
-        if (onConfirm && typeof onConfirm === 'function') {
-            onConfirm();
-        }
-    });
-    
-    // Limpiar el modal del DOM cuando se oculte
-    document.getElementById('customModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-        cleanupModalBackdrops();
+    return showAlert(message, type, title).then(() => {
+        if (typeof onConfirm === 'function') onConfirm();
     });
 }
 
 /**
- * Muestra un modal de confirmación en lugar de confirm()
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje de confirmación
- * @param {function} onConfirm - Función a ejecutar si confirma
- * @param {function} onCancel - Función a ejecutar si cancela (opcional)
+ * Show a confirmation modal instead of confirm()
+ * @param {string} title - Modal title
+ * @param {string} message - Confirmation message
+ * @param {function} onConfirm - Callback if confirmed
+ * @param {function} onCancel - Callback if canceled (optional)
  */
 function showConfirmModal(title, message, onConfirm, onCancel = null) {
-    // Limpiar modal anterior si existe
-    const existingModal = document.getElementById('confirmModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    const modalHtml = `
-        <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning text-dark">
-                        <h5 class="modal-title">
-                            <i class="bi bi-question-circle-fill me-2"></i>
-                            ${title}
-                        </h5>
-                    </div>
-                    <div class="modal-body text-center py-4">
-                        <i class="bi bi-question-circle-fill text-warning" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
-                    </div>
-                    <div class="modal-footer justify-content-center border-0">
-                        <button type="button" class="btn btn-secondary px-4 me-2" id="confirmModalCancel">Cancelar</button>
-                        <button type="button" class="btn btn-warning px-4" id="confirmModalConfirm">Confirmar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
-    modal.show();
-    
-    // Manejar botones
-    document.getElementById('confirmModalConfirm').addEventListener('click', () => {
-        modal.hide();
-        if (onConfirm && typeof onConfirm === 'function') {
-            onConfirm();
-        }
-    });
-    
-    document.getElementById('confirmModalCancel').addEventListener('click', () => {
-        modal.hide();
-        if (onCancel && typeof onCancel === 'function') {
+    return showConfirm(message, title).then(confirmed => {
+        if (confirmed) {
+            if (typeof onConfirm === 'function') onConfirm();
+        } else if (typeof onCancel === 'function') {
             onCancel();
         }
     });
-    
-    // Limpiar el modal del DOM cuando se oculte
-    document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-        cleanupModalBackdrops();
-    });
 }
 
 // ===================================================================
-// FUNCIONES DE PERFIL Y NAVEGACIÓN
+// PROFILE AND NAVIGATION FUNCTIONS
 // ===================================================================
 
 /**
- * Actualiza el enlace de perfil en el header con el nombre del usuario.
+ * Update the profile link in the header with the user's name.
  */
 function updateProfileLink(fullName) {
     const profileDropdown = document.getElementById('profile-dropdown');
     if (profileDropdown && fullName) {
-        // Extraer solo el primer nombre para mostrar en el header
+    // Extract only the first name to show in the header
         const firstName = fullName.split(' ')[0];
         profileDropdown.innerHTML = `<i class="bi bi-person-circle me-1"></i> ${firstName}`;
-        profileDropdown.title = `Perfil de ${fullName}`; // Tooltip con el nombre completo
+    profileDropdown.title = `Perfil de ${fullName}`; // Tooltip with full name (UI string stays in Spanish)
         
-        // Agregar estilos: fondo azul, texto blanco, forma ovalada
-        // Usamos clases de Bootstrap para consistencia y luego sobreescribimos
+    // Styles: blue background, white text, pill shape
+    // Use Bootstrap classes for consistency and override selectively
         profileDropdown.className = 'btn btn-primary btn-sm dropdown-toggle';
         profileDropdown.style.cssText = `
-            border-radius: 999px; /* ovalado */
+            border-radius: 999px; /* pill shape */
             padding: 5px 14px;
             font-weight: 500;
             transition: all 0.18s ease;
@@ -206,14 +88,14 @@ function updateProfileLink(fullName) {
     }
 }
 
-// PUNTO DE ENTRADA PRINCIPAL 
+// MAIN ENTRY POINT 
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
         const userProfile = await getUserProfile();
         if (!userProfile.id_provider) {
             showModal('Acceso Denegado', 'Debes tener un perfil de proveedor para acceder a esta sección. Cerraremos tu sesión y te llevaremos al inicio.', 'error', () => {
-                // Cerrar sesión para que en index se muestren los botones de invitado
+                // Log out so index shows guest buttons
                 localStorage.clear();
                 window.location.href = '/index.html';
             });
@@ -223,18 +105,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         myProviderId = userProfile.id_provider;
         await main(userProfile);
     } catch (error) {
-        console.error("Error de autenticación:", error);
+        console.error("Authentication error:", error);
         localStorage.clear();
     window.location.href = '/index.html';
     }
 });
 
-//Función principal que orquesta la carga de la página 
+// Main function orchestrating page load 
 async function main(userProfile) {
-    // Actualizar el enlace de perfil con el nombre del usuario
+    // Update the profile link with the user's name
     updateProfileLink(userProfile.full_name);
     
-    // Inicializar sistema de historial de contratos
+    // Initialize contract history system
     initContractHistory();
     
     await loadAndRenderContracts();
@@ -242,10 +124,10 @@ async function main(userProfile) {
     await loadCategoriesIntoSelect();
     await loadMyServices();
     setupEventListeners(); 
-    setupScrollToTopButton(); // Configurar botón de scroll
+    setupScrollToTopButton(); // Set up scroll-to-top button
 }
 
-// LÓGICA DE CARGA Y RENDERIZACIÓN 
+// LOADING AND RENDERING LOGIC 
 
 async function loadAndRenderContracts() {
     const container = document.getElementById('contracts-container');
@@ -255,9 +137,9 @@ async function loadAndRenderContracts() {
     try {
         const allContracts = await getContracts({ selected_rol: "provider" });
         
-        // Filtrar contratos: excluir solo los completados (los ocultos ya los filtra el backend)
+        // Filter contracts: exclude only those completed by both (backend already hides soft-deleted)
         const activeContracts = allContracts.filter(contract => {
-            // Ocultar contratos completados por ambas partes (el historial lo carga el modal desde backend)
+            // Hide contracts completed by both parties (history loads from backend in modal)
             const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
             return !isCompletedByBoth;
         });
@@ -267,12 +149,12 @@ async function loadAndRenderContracts() {
             return;
         }
 
-        // Función auxiliar para generar insignias de estado y botones de acción
+        // Helper to generate status badges and action buttons
         const getContractDisplay = (contract) => {
             let statusDisplay = '';
             let actions = '';
 
-            // Lógica para contratos activos
+            // Logic for active contracts
             if (contract.status === 'pending') {
                 statusDisplay = `<span class="badge bg-warning text-dark">PENDIENTE</span>`;
                 actions = `<div class="btn-group mt-2">
@@ -282,7 +164,7 @@ async function loadAndRenderContracts() {
             } else if (contract.status === 'accepted') {
                 if (contract.provider_marked_completed) {
                     statusDisplay = `<span class="badge bg-info">Esperando Cliente</span>`;
-                    actions = ''; // Ya confirmó, no hay más acciones para él
+                    actions = ''; // Already confirmed, no more actions for provider
                 } else {
                     statusDisplay = `<span class="badge bg-success">ACEPTADO</span>`;
                     actions = `<button class="btn btn-sm btn-info btn-complete-contract mt-2" data-id="${contract.id_contract}">Marcar como Terminado</button>`;
@@ -316,7 +198,7 @@ async function loadAndRenderContracts() {
         }).join('');
 
     } catch (error) {
-        console.error("Error al cargar contratos:", error);
+        console.error("Error loading contracts:", error);
         container.innerHTML = `<p class="text-danger">Error al cargar las solicitudes.</p>`;
     }
 }
@@ -398,20 +280,20 @@ async function loadCategoriesIntoSelect() {
         categories.forEach(cat => {
             select.innerHTML += `<option value="${cat.id_category}">${cat.title}</option>`;
         });
-    } catch (error) { console.error("No se pudieron cargar las categorías", error); }
+    } catch (error) { console.error("Could not load categories", error); }
 }
 
-// LÓGICA DE EVENTOS Y FORMULARIOS 
+// EVENTS AND FORMS LOGIC 
 
 function setupEventListeners() {
-    // Evento para mostrar reviews de cada servicio
+    // Event to show reviews for each service
     document.getElementById('my-services-container').addEventListener('click', async (e) => {
         const btn = e.target.closest('.btn-show-reviews');
         if (btn) {
             const serviceId = btn.dataset.serviceId;
-            // Eliminar modal anterior de reviews si existe
+            // Remove previous reviews modal if it exists
             document.getElementById('reviewsModal')?.remove();
-            // Mostrar modal de reviews inmediatamente con 'Cargando...'
+            // Show reviews modal immediately with 'Cargando...'
             const reviewsModalHtml = `
                 <div class="modal fade" id="reviewsModal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
@@ -433,7 +315,7 @@ function setupEventListeners() {
             document.body.insertAdjacentHTML('beforeend', reviewsModalHtml);
             const modal = new bootstrap.Modal(document.getElementById('reviewsModal'));
             modal.show();
-            // Cargar reviews
+            // Load reviews
             try {
                 const { getReviewsByServiceId } = await import('./api/reviews.js');
                 const reviews = await getReviewsByServiceId(serviceId);
@@ -477,7 +359,7 @@ function setupEventListeners() {
     const modalTitle = document.getElementById('service-modal-title');
 
 
-    // Lógica para crear servicio (modal original)
+    // Logic to create service (original modal)
     document.getElementById('btn-open-create-modal').addEventListener('click', () => {
         modalTitle.textContent = 'Publicar Nuevo Servicio';
         serviceForm.reset();
@@ -485,7 +367,7 @@ function setupEventListeners() {
         serviceModal.show();
     });
 
-    // Lógica para editar servicio (modal independiente, singleton)
+    // Logic to edit service (independent singleton modal)
     // create or get singleton edit modal
     function createEditModalOnce() {
         if (document.getElementById('editServiceModal')) return;
@@ -531,12 +413,11 @@ function setupEventListeners() {
             </div>`;
         document.body.insertAdjacentHTML('beforeend', html);
         const editForm = document.getElementById('edit-service-form');
-        // attach submit handler once
+    // attach submit handler once
         editForm.addEventListener('submit', async (ev) => {
             ev.preventDefault();
             const formData = new FormData(ev.target);
             const data = Object.fromEntries(formData.entries());
-            // Forzar entero en hour_price
             data.hour_price = Math.trunc(Number(data.hour_price || 0));
             const id = data.id_service;
             try {
@@ -589,7 +470,6 @@ function setupEventListeners() {
             form.id_service.value = service.id_service;
             form.name.value = service.name;
             form.description.value = service.description;
-            // Mostrar precio/hora como entero
             const hp = Number(service.hour_price);
             form.hour_price.value = Number.isFinite(hp) ? Math.trunc(hp) : '';
             form.experience_years.value = service.experience_years;
@@ -612,7 +492,7 @@ function setupEventListeners() {
         }
     });
 
-    // Listener separado para ocultar (soft-delete) servicios
+    // Separate listener to hide (soft-delete) services
     document.getElementById('my-services-container').addEventListener('click', async (e) => {
         const btn = e.target.closest('.btn-delete-service');
         if (!btn) return;
@@ -634,7 +514,7 @@ function setupEventListeners() {
         e.preventDefault();
         const formData = new FormData(serviceForm);
         const data = Object.fromEntries(formData.entries());
-        // Forzar entero en hour_price para creación/actualización desde este formulario
+    // Force integer for hour_price when creating/updating from this form
         data.hour_price = Math.trunc(Number(data.hour_price || 0));
         const serviceId = data.id_service;
         try {
@@ -662,14 +542,14 @@ function setupEventListeners() {
         }
     });
 
-    // Event listener separado para los contratos
+    // Separate event listener for contracts
     document.getElementById('contracts-container').addEventListener('click', async (e) => {
         const acceptContractBtn = e.target.closest('.btn-accept-contract');
         const denyContractBtn = e.target.closest('.btn-deny-contract');
         const deleteContractBtn = e.target.closest('.btn-delete-contract');
         const completeContractBtn = e.target.closest('.btn-complete-contract');
 
-        // Clic en "Aceptar" contrato
+    // Click on "Aceptar" contract
         if (acceptContractBtn) {
             const contractId = acceptContractBtn.dataset.id;
             acceptContractBtn.disabled = true;
@@ -677,7 +557,7 @@ function setupEventListeners() {
             try {
                 const result = await respondToContract(contractId, 'accepted');
                 showModal('¡Éxito!', result.message, 'success');
-                loadAndRenderContracts(); // Recargamos la lista de contratos
+        loadAndRenderContracts(); // Reload contracts list
             } catch (error) {
                 showModal('Error', `Error: ${error.message}`, 'error');
                 acceptContractBtn.disabled = false;
@@ -685,7 +565,7 @@ function setupEventListeners() {
             }
         }
 
-        // Clic en "Rechazar" contrato
+    // Click on "Rechazar" contract
         else if (denyContractBtn) {
             const contractId = denyContractBtn.dataset.id;
             denyContractBtn.disabled = true;
@@ -693,14 +573,14 @@ function setupEventListeners() {
             try {
                 const result = await respondToContract(contractId, 'denied');
                 showModal('¡Éxito!', result.message, 'success');
-                loadAndRenderContracts(); // Recargamos la lista de contratos
+        loadAndRenderContracts(); // Reload contracts list
             } catch (error) {
                 showModal('Error', `Error: ${error.message}`, 'error');
                 denyContractBtn.disabled = false;
                 denyContractBtn.textContent = 'Rechazar';
             }
         }
-        // Clic en "Eliminar" contrato rechazado (solo eliminar de la vista del proveedor)
+    // Click on "Eliminar" rejected contract (only remove from provider's view)
         else if (deleteContractBtn) {
             const contractId = deleteContractBtn.dataset.contractId;
             showConfirmModal(
@@ -710,7 +590,7 @@ function setupEventListeners() {
                     try {
                         await deleteContract(contractId);
                         showModal('¡Éxito!', 'Contrato eliminado de tu vista.', 'success');
-                        loadAndRenderContracts(); // Recargamos la lista
+            loadAndRenderContracts(); // Reload list
                     } catch (error) {
                         showModal('Error', `Error al eliminar: ${error.message}`, 'error');
                     }
@@ -726,7 +606,7 @@ function setupEventListeners() {
                     try {
                         await completeContract(contractId);
                         showModal('¡Éxito!', 'Has confirmado la finalización del servicio.', 'success');
-                        loadAndRenderContracts(); // Recargamos la lista
+            loadAndRenderContracts(); // Reload list
                     } catch (error) {
                         showModal('Error', `Error al confirmar: ${error.message}`, 'error');
                     }
@@ -736,22 +616,22 @@ function setupEventListeners() {
     });
 }
 
-// Event listeners para el dropdown del perfil
+// Event listeners for profile dropdown
 const editProfileBtn = document.getElementById('edit-profile-btn');
 if (editProfileBtn) {
     editProfileBtn.addEventListener('click', async (e) => {
         e.preventDefault();
-        // Eliminar modal anterior si existe
+        // Remove previous modal if it exists
         let oldModal = document.getElementById('clientProfileModal');
         if (oldModal) oldModal.remove();
 
-        // Obtener id_client del sessionStorage
+        // Get provider id from session
         if (!myProviderId) {
             showModal('Error', 'No se encontró tu id de proveedor.', 'error');
             return;
         }
 
-        // Obtener datos del proveedor
+        // Get provider data
         let providerData;
         try {
             providerData = await getProviderById(myProviderId);
@@ -760,7 +640,7 @@ if (editProfileBtn) {
             return;
         }
         
-        // Crear el modal
+        // Create the modal
         const modalHtml = `
             <div class="modal fade" id="clientProfileModal" tabindex="-1">
                 <div class="modal-dialog modal-dialog-centered">
@@ -809,7 +689,7 @@ if (editProfileBtn) {
         const modal = new bootstrap.Modal(document.getElementById('clientProfileModal'));
         modal.show();
 
-        // Manejar el submit del formulario
+        // Handle form submit
         document.getElementById('client-profile-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const form = e.target;
@@ -817,11 +697,11 @@ if (editProfileBtn) {
             const phone_number = form.phone_number.value.trim();
             const personal_picture = form.personal_picture.value.trim();
             const bio = form.bio.value.trim();
-            // El email no se puede modificar
+            // Email cannot be modified
             try {
                 await putProvider(myProviderId, { full_name, phone_number, personal_picture, bio });
                 document.getElementById('profile-update-msg').textContent = 'Perfil actualizado con éxito.';
-                // Cerrar el modal después de 2 segundos
+                // Close the modal after 2 seconds
                 setTimeout(() => {
                     const modal = bootstrap.Modal.getInstance(document.getElementById('clientProfileModal'));
                     if (modal) modal.hide();
@@ -831,7 +711,7 @@ if (editProfileBtn) {
             }
         });
 
-        // Evento para resetear contraseña
+        // Password reset trigger
         document.getElementById('btn-reset-password').addEventListener('click', async () => {
             const email = providerData[0].email;
             if (!email) {
@@ -848,7 +728,7 @@ if (editProfileBtn) {
     });
 }
 
-// Event listener para el botón de logout
+// Event listener for logout button
 const logoutBtn = document.getElementById('logout-btn');
 if (logoutBtn) {
     logoutBtn.addEventListener('click', (e) => {
@@ -858,29 +738,29 @@ if (logoutBtn) {
     });
 }
 
-// FUNCIÓN PARA EL BOTÓN DE SCROLL HACIA ARRIBA
+// SCROLL-TO-TOP BUTTON
 function setupScrollToTopButton() {
     const scrollToTopBtn = document.getElementById('scroll-to-top');
     
     if (!scrollToTopBtn) {
-        console.error('Botón scroll-to-top no encontrado');
+        console.error('Scroll-to-top button not found');
         return;
     }
     
-    console.log('Botón de scroll configurado correctamente');
+    console.log('Scroll-to-top button configured');
     
-    // Función simple y directa para scroll
+    // Simple immediate scroll behavior
     scrollToTopBtn.onclick = function() {
-        console.log('¡Click detectado! Iniciando scroll...');
+    console.log('Click detected! Scrolling to top...');
         
-        // Scroll inmediato para test
-        document.body.scrollTop = 0; // Para Safari
-        document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
+    // Immediate scroll for quick response
+        document.body.scrollTop = 0; // For Safari
+        document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
         
-        console.log('Scroll ejecutado');
+    console.log('Scroll executed');
     };
     
-    // Mostrar/ocultar el botón basado en la posición del scroll
+    // Show/hide button based on scroll position
     window.onscroll = function() {
         if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
             scrollToTopBtn.style.opacity = '1';
@@ -893,12 +773,12 @@ function setupScrollToTopButton() {
 }
 
 // ===================================================================
-// FUNCIONES PARA GESTIONAR CONTRATOS OCULTOS
+// FUNCTIONS TO MANAGE HIDDEN CONTRACTS
 // ===================================================================
 
 
 /**
- * Actualiza el badge del botón de contratos ocultos
+ * Update the badge for the hidden contracts button
  */
 async function updateHiddenContractsBadge() {
     const hiddenBtn = document.getElementById('hidden-contracts-btn');
@@ -908,13 +788,13 @@ async function updateHiddenContractsBadge() {
         const hiddenContracts = await getHiddenContractsForProvider();
         const count = hiddenContracts.length;
         
-        // Remover badge existente
+    // Remove existing badge
         const existingBadge = hiddenBtn.querySelector('.badge');
         if (existingBadge) {
             existingBadge.remove();
         }
         
-        // Agregar nuevo badge si hay contratos ocultos
+    // Add a new badge if there are hidden contracts
         if (count > 0) {
             const badge = document.createElement('span');
             badge.className = 'badge bg-secondary ms-1';
@@ -922,15 +802,15 @@ async function updateHiddenContractsBadge() {
             hiddenBtn.appendChild(badge);
         }
     } catch (error) {
-        console.error('Error al actualizar badge de contratos ocultos:', error);
+    console.error('Error updating hidden contracts badge:', error);
     }
 }
 
 /**
- * Configura los event listeners para contratos ocultos
+ * Set up event listeners for hidden contracts
  */
 function setupHiddenContractsListeners() {
-    // Botón para abrir modal de contratos ocultos
+     // Button to open hidden contracts modal
     const hiddenBtn = document.getElementById('hidden-contracts-btn');
     if (hiddenBtn) {
         hiddenBtn.addEventListener('click', () => {
@@ -940,7 +820,7 @@ function setupHiddenContractsListeners() {
         });
     }
     
-    // Event delegation para botones de restaurar
+     // Event delegation for restore buttons
     document.addEventListener('click', async (e) => {
         if (e.target.closest('.restore-contract-btn')) {
             const btn = e.target.closest('.restore-contract-btn');
@@ -949,8 +829,8 @@ function setupHiddenContractsListeners() {
             const success = await showContractInProviderView(contractId);
             if (success) {
                 showModal('¡Éxito!', 'Contrato restaurado en tu vista principal.', 'success');
-                renderHiddenContracts(); // Actualizar la lista de ocultos
-                loadAndRenderContracts(); // Actualizar la lista principal
+                     renderHiddenContracts(); // Update hidden list
+                     loadAndRenderContracts(); // Update main list
             } else {
                 showModal('Error', 'No se pudo restaurar el contrato. Inténtalo de nuevo.', 'error');
             }

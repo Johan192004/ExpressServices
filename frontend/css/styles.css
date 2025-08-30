@@ -1,4 +1,4 @@
-/* Ajuste específico para header en index y clientes en móviles */
+/* Specific adjustment for header on index and client pages on mobile */
 @media (max-width: 991.98px) {
     #navbarNav {
         width: 100%;
@@ -94,7 +94,7 @@ body {
     color: var(--primary-color);
 }
 
-/* Botón de favoritos personalizado */
+/* Custom favorites button */
 .btn-favorites {
     background: linear-gradient(45deg, #FFD700, #FFA500);
     color: #fff;
@@ -159,7 +159,7 @@ body {
     margin-bottom: 0;
 }
 
-/* Estilos para categoría activa/seleccionada */
+/* Styles for active/selected category */
 .category-card.active {
     background: linear-gradient(45deg, #0d6efd, #4364F7) !important;
     color: white !important;
@@ -205,7 +205,7 @@ body {
     margin: 15px auto 0;
 }
 
-/* Estilo general para provider-avatar en cualquier contexto */
+/* General style for provider-avatar in any context */
 .provider-avatar {
     width: 60px;
     height: 60px;
@@ -244,7 +244,7 @@ body {
 }
 
 
-/* Mejora para el efecto hover en el botón primario del modal */
+/* Improved hover effect for the modal primary button */
 .modal-body .btn-primary:hover {
     opacity: 0.9;
     transform: translateY(-2px);
@@ -252,14 +252,14 @@ body {
 }
 
 .btn-provider {
-    background-color: #fff; /* Fondo blanco */
-    color: var(--secondary-color); /* Texto naranja */
-    border: 2px solid var(--secondary-color); /* Borde naranja */
+    background-color: #fff; /* White background */
+    color: var(--secondary-color); /* Orange text */
+    border: 2px solid var(--secondary-color); /* Orange border */
     font-weight: 600;
-    transition: all 0.3s ease; /* Transición suave */
+    transition: all 0.3s ease; /* Smooth transition */
 }
 
-/* Estado al pasar el mouse (hover) */
+/* Hover state */
 .btn-provider:hover {
     background: linear-gradient(45deg, var(--secondary-color), #FF8C42); /* Fondo degradado naranja */
     color: #fff; /* Texto blanco */
@@ -269,12 +269,12 @@ body {
 }
 
 .btn-outline-primary {
-    border-width: 2px; /* Hacemos el borde un poco más grueso */
+    border-width: 2px; /* Slightly thicker border */
     font-weight: 600;
-    transition: all 0.3s ease; /* Transición suave */
+    transition: all 0.3s ease; /* Smooth transition */
 }
 
-/* Estado al pasar el mouse (hover) */
+/* Hover state */
 .btn-outline-primary:hover {
     background: linear-gradient(45deg, var(--primary-color), #4364F7); /* Fondo degradado azul */
     color: #fff; /* Texto blanco */
@@ -282,7 +282,7 @@ body {
     box-shadow: 0 5px 15px rgba(0, 82, 212, 0.4); /* Sombra azul suave */
 }
 
-/* Contenedor general de los botones de usuario */
+/* General container for user buttons */
 #user-buttons {
     gap: 0.5rem;
     flex-wrap: wrap;
@@ -312,7 +312,7 @@ body {
     }
 }
 
-/* Ajuste para perfil en móviles */
+/* Adjustment for profile on mobile */
 #profile-link {
     padding: 0.5rem 0.8rem;
     border-radius: 8px;
@@ -328,8 +328,8 @@ body {
     color: var(--primary-color);
 }
 
-/* ======== DROPDOWN PERFIL ======== */
-/* Fix para dropdown del perfil - quitar bordes circulares */
+/* ======== PROFILE DROPDOWN ======== */
+/* Fix for profile dropdown - remove rounded borders */
 #profile-dropdown + .dropdown-menu {
     border-radius: 8px !important;
     border: 1px solid #dee2e6 !important;
@@ -356,9 +356,9 @@ body {
     box-shadow: 0 4px 10px rgba(0, 82, 212, 0.3);
 }
 
-/* Estilo removido para #logout-btn ya que ahora es un dropdown-item */
+/* Style removed for #logout-btn as it is now a dropdown-item */
 
-/* ======== ESTILOS PARA EL CHAT MODAL ======== */
+/* ======== STYLES FOR THE CHAT MODAL ======== */
 .chat-bubble {
     padding: 8px 12px;
     border-radius: 18px;
@@ -371,14 +371,14 @@ body {
 .chat-bubble.sent {
     background-color: var(--primary-color);
     color: white;
-    align-self: flex-end; /* Alinea a la derecha */
+    align-self: flex-end; /* Align to the right */
     align-items: flex-end;
 }
 
 .chat-bubble.received {
-    background-color: #e9ecef; /* Gris suave */
+    background-color: #e9ecef; /* Soft gray */
     color: var(--dark-gray);
-    align-self: flex-start; /* Alinea a la izquierda */
+    align-self: flex-start; /* Align to the left */
     align-items: flex-start;
 }
 
@@ -393,16 +393,16 @@ body {
 
 
 #authActionModal .modal-content {
-    border-radius: 15px; /* Bordes más redondeados */
+    border-radius: 15px; /* More rounded corners */
 }
 
 #authActionModal .auth-arrow-icon {
-    font-size: 4rem; /* Ícono grande */
+    font-size: 4rem; /* Large icon */
     color: var(--primary-color);
     animation: point-to-corner 2s infinite ease-in-out;
 }
 
-/* Animación para que la flecha señale sutilmente a la esquina superior derecha */
+/* Animation to subtly point the arrow to the top-right corner */
 @keyframes point-to-corner {
     0% {
         transform: translate(0, 0) scale(1);
@@ -420,7 +420,7 @@ body {
 
 /* ======== FOOTER ======== */
 .footer-section {
-    background-color: var(--dark-gray); /* Aseguramos un color de fondo consistente */
+    background-color: var(--dark-gray); /* Ensure a consistent background color */
 }
 
 .footer-link, .footer-icon {
@@ -428,7 +428,7 @@ body {
 }
 
 .footer-link:hover {
-    color: #fff !important; /* El !important es para sobreescribir Bootstrap */
+    color: #fff !important; /* !important is to override Bootstrap */
     padding-left: 5px;
 }
 

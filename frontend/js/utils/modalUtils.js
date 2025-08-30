@@ -1,13 +1,14 @@
 // frontend/js/utils/modalUtils.js
 
 /**
- * Muestra un modal de alerta personalizado en lugar de alert()
- * @param {string} message - El mensaje a mostrar
- * @param {string} type - Tipo de alerta: 'success', 'error', 'warning', 'info'
+ * Show a custom alert modal instead of alert().
+ * @param {string} message - Message to display (UI-facing; keep in Spanish where applicable)
+ * @param {string} type - Alert type: 'success', 'error', 'warning', 'info'
+ * @param {string|null} title - Optional title override (UI-facing)
  */
-export function showAlert(message, type = 'info') {
+export function showAlert(message, type = 'info', title = null) {
     return new Promise((resolve) => {
-        // Crear el modal dinámicamente si no existe
+     // Create the modal dynamically if it doesn't exist
         let alertModal = document.getElementById('alertModal');
         if (!alertModal) {
             alertModal = createAlertModal();
@@ -18,22 +19,23 @@ export function showAlert(message, type = 'info') {
         const modalBody = alertModal.querySelector('.modal-body');
         const icon = getIconForType(type);
         const colorClass = getColorClassForType(type);
+    const heading = title || getTitleForType(type);
 
         modalBody.innerHTML = `
             <div class="text-center">
                 <div class="mb-3">
                     <i class="${icon} ${colorClass}" style="font-size: 3rem;"></i>
                 </div>
-                <h5 class="fw-bold">${getTitleForType(type)}</h5>
+        <h5 class="fw-bold">${heading}</h5>
                 <p class="text-muted">${message}</p>
             </div>
         `;
 
-        // Mostrar el modal
+    // Show modal
         const modal = new bootstrap.Modal(alertModal);
         modal.show();
 
-        // Resolver la promesa cuando se cierre el modal
+    // Resolve promise when modal is closed
         alertModal.addEventListener('hidden.bs.modal', () => {
             resolve();
         }, { once: true });
@@ -41,13 +43,13 @@ export function showAlert(message, type = 'info') {
 }
 
 /**
- * Muestra un modal de confirmación personalizado en lugar de confirm()
- * @param {string} message - El mensaje a mostrar
- * @param {string} title - Título del modal
+ * Show a custom confirmation modal instead of confirm().
+ * @param {string} message - Confirmation message (UI-facing)
+ * @param {string} title - Modal title (UI-facing)
  */
 export function showConfirm(message, title = 'Confirmar acción') {
     return new Promise((resolve) => {
-        // Crear el modal dinámicamente si no existe
+    // Create the modal dynamically if it doesn't exist
         let confirmModal = document.getElementById('confirmModal');
         if (!confirmModal) {
             confirmModal = createConfirmModal();
@@ -70,11 +72,11 @@ export function showConfirm(message, title = 'Confirmar acción') {
             </div>
         `;
 
-        // Mostrar el modal
+    // Show modal
         const modal = new bootstrap.Modal(confirmModal);
         modal.show();
 
-        // Manejar los clicks
+    // Handle clicks
         const handleConfirm = () => {
             modal.hide();
             resolve(true);
@@ -92,20 +94,20 @@ export function showConfirm(message, title = 'Confirmar acción') {
             cancelBtn.removeEventListener('click', handleCancel);
         };
 
-        confirmBtn.addEventListener('click', handleConfirm);
-        cancelBtn.addEventListener('click', handleCancel);
+    confirmBtn.addEventListener('click', handleConfirm);
+    cancelBtn.addEventListener('click', handleCancel);
     });
 }
 
 /**
- * Muestra un modal de prompt personalizado en lugar de prompt()
- * @param {string} message - El mensaje a mostrar
- * @param {string} defaultValue - Valor por defecto
- * @param {string} title - Título del modal
+ * Show a custom prompt modal instead of prompt().
+ * @param {string} message - Prompt message (UI-facing)
+ * @param {string} defaultValue - Default value
+ * @param {string} title - Modal title (UI-facing)
  */
 export function showPrompt(message, defaultValue = '', title = 'Ingrese información') {
     return new Promise((resolve) => {
-        // Crear el modal dinámicamente si no existe
+    // Create the modal dynamically if it doesn't exist
         let promptModal = document.getElementById('promptModal');
         if (!promptModal) {
             promptModal = createPromptModal();
@@ -126,16 +128,16 @@ export function showPrompt(message, defaultValue = '', title = 'Ingrese informac
             </div>
         `;
 
-        // Mostrar el modal
+    // Show modal
         const modal = new bootstrap.Modal(promptModal);
         modal.show();
 
-        // Focus en el input
+    // Focus input field
         setTimeout(() => {
             document.getElementById('promptInput').focus();
         }, 500);
 
-        // Manejar los clicks
+    // Handle clicks
         const handleSubmit = () => {
             const value = document.getElementById('promptInput').value;
             modal.hide();
@@ -157,7 +159,7 @@ export function showPrompt(message, defaultValue = '', title = 'Ingrese informac
         submitBtn.addEventListener('click', handleSubmit);
         cancelBtn.addEventListener('click', handleCancel);
 
-        // Permitir envío con Enter
+    // Allow submit with Enter key
         modalBody.addEventListener('keypress', (e) => {
             if (e.key === 'Enter') {
                 handleSubmit();
@@ -166,7 +168,15 @@ export function showPrompt(message, defaultValue = '', title = 'Ingrese informac
     });
 }
 
-// Funciones helper para crear los modales
+// Shared utility to clean backdrops and body class when chained modals close
+export function cleanupModalBackdrops() {
+    try {
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+    } catch (_) { /* noop */ }
+}
+
+// Helper functions to create modals
 function createAlertModal() {
     const modal = document.createElement('div');
     modal.className = 'modal fade';
@@ -179,7 +189,7 @@ function createAlertModal() {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Contenido dinámico -->
+            <!-- Dynamic content -->
                 </div>
                 <div class="modal-footer border-0 justify-content-center">
                     <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Entendido</button>
@@ -203,7 +213,7 @@ function createConfirmModal() {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Contenido dinámico -->
+            <!-- Dynamic content -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="cancelBtn">Cancelar</button>
@@ -228,7 +238,7 @@ function createPromptModal() {
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Contenido dinámico -->
+            <!-- Dynamic content -->
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" id="promptCancelBtn">Cancelar</button>

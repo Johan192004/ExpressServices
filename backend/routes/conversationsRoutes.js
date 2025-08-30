@@ -6,22 +6,21 @@ const { protect } = require('../middleware/authMiddleware.js');
 
 /**
  * @route   GET /api/conversations/provider
- * @desc    Obtener todas las conversaciones de un proveedor logueado
- * @access  Private (Solo para proveedores)
+ * @desc    Get all conversations for the logged-in provider
+ * @access  Private (Providers only)
  */
 router.get('/provider', protect, async (req, res) => {
     try {
-        const id_user_provider = req.user.id; // ID del usuario proveedor (del token)
+    const id_user_provider = req.user.id; // Provider user ID (from token)
 
-        // 1. Obtenemos el id_provider a partir del id_user
+    // 1. Get id_provider from id_user
         const [providerRows] = await pool.query('SELECT id_provider FROM providers WHERE id_user = ?', [id_user_provider]);
         if (providerRows.length === 0) {
             return res.status(403).json({ error: 'Acción no permitida. Debes ser un proveedor.' });
         }
         const id_provider = providerRows[0].id_provider;
 
-        // 2. Obtenemos todas las conversaciones de ese proveedor
-        //    y unimos las tablas para obtener datos útiles para la interfaz
+    // 2. Get all conversations for that provider, joining tables for UI data
     const [conversations] = await pool.query(
             `SELECT 
                 convo.id_conversation,
@@ -42,7 +41,7 @@ router.get('/provider', protect, async (req, res) => {
         res.status(200).json(conversations);
 
     } catch (error) {
-        console.error("Error al obtener las conversaciones del proveedor:", error);
+    console.error("Error fetching provider conversations:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
@@ -50,22 +49,21 @@ router.get('/provider', protect, async (req, res) => {
 
 /**
  * @route   GET /api/conversations/client
- * @desc    Obtener todas las conversaciones de un cliente logueado
- * @access  Private (Solo para clientes)
+ * @desc    Get all conversations for the logged-in client
+ * @access  Private (Clients only)
  */
 router.get('/client', protect, async (req, res) => {
     try {
-        const id_user_client = req.user.id; // ID del usuario cliente (del token)
+    const id_user_client = req.user.id; // Client user ID (from token)
 
-        // 1. Obtenemos el id_client a partir del id_user
+    // 1. Get id_client from id_user
         const [clientRows] = await pool.query('SELECT id_client FROM clients WHERE id_user = ?', [id_user_client]);
         if (clientRows.length === 0) {
             return res.status(403).json({ error: 'Acción no permitida. Debes ser un cliente.' });
         }
         const id_client = clientRows[0].id_client;
-
-        // 2. Obtenemos todas las conversaciones de ese cliente
-        //    y unimos las tablas para obtener el nombre del proveedor y del servicio
+        
+    // 2. Get all conversations for that client (provider + service info)
     const [conversations] = await pool.query(
             `SELECT 
                 convo.id_conversation,
@@ -86,7 +84,7 @@ router.get('/client', protect, async (req, res) => {
         res.status(200).json(conversations);
 
     } catch (error) {
-        console.error("Error al obtener las conversaciones del cliente:", error);
+    console.error("Error fetching client conversations:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
@@ -94,14 +92,13 @@ router.get('/client', protect, async (req, res) => {
 
 /**
  * @route   POST /api/conversations
- * @desc    Iniciar o encontrar una conversación sobre un servicio
+ * @desc    Start or find a conversation for a service
  * @access  Private
  */
 router.post('/', protect, async (req, res) => {
-    // ... (esta ruta que ya creamos se queda igual)
     try {
         const { id_service } = req.body;
-        const id_user_client = req.user.id; 
+     const id_user_client = req.user.id; 
 
         if (!id_service) {
             return res.status(400).json({ error: 'El ID del servicio es requerido.' });
@@ -142,7 +139,7 @@ router.post('/', protect, async (req, res) => {
         });
 
     } catch (error) {
-        console.error("Error al iniciar conversación:", error);
+        console.error("Error starting conversation:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
@@ -150,15 +147,15 @@ router.post('/', protect, async (req, res) => {
 
 /**
  * @route   GET /api/conversations/:id/messages
- * @desc    Obtener todos los mensajes de una conversación
+ * @desc    Get all messages in a conversation
  * @access  Private
  */
 router.get('/:id/messages', protect, async (req, res) => {
     try {
-        const { id } = req.params; // ID de la conversación
-        const id_user = req.user.id; // ID del usuario logueado
+    const { id } = req.params; // Conversation ID
+    const id_user = req.user.id; // Logged-in user ID
 
-        // Verificamos que el usuario actual sea parte de la conversación (seguridad)
+    // Ensure the current user is part of the conversation (security)
         const [convoCheck] = await pool.query(
             `SELECT c.id_client, p.id_provider 
              FROM conversations convo
@@ -172,7 +169,7 @@ router.get('/:id/messages', protect, async (req, res) => {
             return res.status(403).json({ error: 'No tienes permiso para ver esta conversación.' });
         }
 
-        // Si tiene permiso, obtenemos los mensajes y los datos del remitente
+    // Fetch messages and sender info
     const [messages] = await pool.query(
             `SELECT 
                 m.*, 
@@ -182,15 +179,15 @@ router.get('/:id/messages', protect, async (req, res) => {
         UNIX_TIMESTAMP(m.sent_at) AS sent_at_unix
              FROM messages m
              JOIN users u ON m.sender_id = u.id_user
-             WHERE m.id_conversation = ?
-             ORDER BY m.sent_at ASC`, // Ordenamos por fecha para un chat coherente
+         WHERE m.id_conversation = ?
+         ORDER BY m.sent_at ASC`, // Order by date for a coherent chat
             [id]
         );
         
         res.status(200).json(messages);
 
     } catch (error) {
-        console.error("Error al obtener mensajes:", error);
+    console.error("Error fetching messages:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });
@@ -198,29 +195,28 @@ router.get('/:id/messages', protect, async (req, res) => {
 
 /**
  * @route   POST /api/conversations/:id/messages
- * @desc    Enviar un nuevo mensaje a una conversación
+ * @desc    Send a new message to a conversation
  * @access  Private
  */
 router.post('/:id/messages', protect, async (req, res) => {
     try {
-        const { id } = req.params; // ID de la conversación
+    const { id } = req.params; // Conversation ID
         const { content } = req.body;
-        const sender_id = req.user.id; // ID del remitente (del token)
+    const sender_id = req.user.id; // Sender ID (from token)
 
         if (!content) {
             return res.status(400).json({ error: 'El contenido del mensaje no puede estar vacío.' });
         }
 
-        // (Opcional pero recomendado) Volver a verificar que el remitente pertenece a la conversación
-        // ... (se puede añadir la misma lógica de seguridad del GET anterior)
+    // Optional: re-verify that the sender belongs to the conversation (same security as GET)
 
-        // Insertamos el nuevo mensaje
+    // Insert the new message
         const [result] = await pool.query(
             'INSERT INTO messages (id_conversation, sender_id, content) VALUES (?, ?, ?)',
             [id, sender_id, content]
         );
 
-        // Devolvemos el mensaje recién creado
+    // Return the newly created message
     const [newMessage] = await pool.query(
             `SELECT 
                 m.*, 
@@ -237,7 +233,7 @@ router.post('/:id/messages', protect, async (req, res) => {
         res.status(201).json(newMessage[0]);
 
     } catch (error) {
-        console.error("Error al enviar mensaje:", error);
+    console.error("Error sending message:", error);
         res.status(500).json({ error: 'Error en el servidor.' });
     }
 });

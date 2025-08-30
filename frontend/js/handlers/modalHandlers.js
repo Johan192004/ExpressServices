@@ -5,17 +5,17 @@ import { openChatModal } from '../ui/chat.js';
 import { showAlert } from '../utils/modalUtils.js';
 
 // ===================================================================
-// FUNCIONES DE MANEJO DE IMÁGENES CON AVATARES DE RESPALDO
+// IMAGE HANDLING WITH INITIALS AVATAR FALLBACK
 // ===================================================================
 
 /**
- * Genera un avatar SVG con las iniciales del nombre completo
- * @param {string} fullName - Nombre completo del proveedor
- * @param {number} size - Tamaño del avatar en píxeles (por defecto 60)
- * @returns {string} - URL de datos SVG
+ * Generate an SVG avatar with initials from the full name
+ * @param {string} fullName - Provider full name
+ * @param {number} size - Avatar size in pixels (default 60)
+ * @returns {string} - SVG data URL
  */
 function generateInitialsAvatar(fullName, size = 60) {
-    // Obtener las iniciales del nombre
+    // Get initials from name
     const initials = fullName
         .split(' ')
         .filter(name => name.length > 0)
@@ -23,13 +23,13 @@ function generateInitialsAvatar(fullName, size = 60) {
         .slice(0, 2) // Solo las primeras 2 iniciales
         .join('');
     
-    // Colores de fondo aleatorios pero consistentes basados en el nombre
+    // Random yet consistent background colors based on name
     const colors = [
         '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
         '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
     ];
     
-    // Generar un color consistente basado en el hash del nombre
+    // Generate a consistent color based on the name hash
     let hash = 0;
     for (let i = 0; i < fullName.length; i++) {
         hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
@@ -37,7 +37,7 @@ function generateInitialsAvatar(fullName, size = 60) {
     const colorIndex = Math.abs(hash) % colors.length;
     const backgroundColor = colors[colorIndex];
     
-    // Crear el SVG
+    // Build SVG
     const svg = `
         <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
             <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${backgroundColor}"/>
@@ -46,44 +46,44 @@ function generateInitialsAvatar(fullName, size = 60) {
         </svg>
     `;
     
-    // Convertir a URL de datos
+    // Convert to data URL
     return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
 /**
- * Configura el manejo de imágenes con avatar inmediato y carga en segundo plano
- * @param {HTMLImageElement} img - Elemento de imagen
- * @param {string} providerName - Nombre del proveedor
- * @param {string} originalSrc - URL original de la imagen
- * @param {number} size - Tamaño del avatar
+ * Configure image handling with immediate initials avatar and background loading
+ * @param {HTMLImageElement} img - Image element
+ * @param {string} providerName - Provider name
+ * @param {string} originalSrc - Original image URL
+ * @param {number} size - Avatar size
  */
 function setupImageFallback(img, providerName, originalSrc, size = 60) {
-    // Mostrar inmediatamente el avatar de iniciales
+    // Immediately show initials avatar
     const initialsAvatar = generateInitialsAvatar(providerName, size);
     img.src = initialsAvatar;
     
-    // Intentar cargar la imagen real en segundo plano
+    // Try loading the real image in the background
     if (originalSrc && originalSrc !== 'null' && originalSrc.trim() !== '') {
         const realImage = new Image();
         realImage.onload = function() {
-            // Si la imagen real carga exitosamente, reemplazar el avatar
+            // If real image loads successfully, replace avatar
             img.src = originalSrc;
         };
         realImage.onerror = function() {
-            // Si falla, mantener el avatar de iniciales (ya está configurado)
+            // On failure, keep initials avatar
             console.log(`Failed to load image for ${providerName}, using initials avatar`);
         };
-        // Iniciar la carga de la imagen real
+    // Start loading the real image
         realImage.src = originalSrc;
     }
 }
 
 // ===================================================================
-// LÓGICA DE MODALES ESPECÍFICOS
+// SPECIFIC MODALS LOGIC
 // ===================================================================
 
 /**
- * Configura la lógica interna del modal de registro (selección de rol y reseteo).
+ * Wire internal logic for the register modal (role selection and reset).
  */
 function setupRegisterModal() {
     const roleSelector = document.getElementById('role-selector');
@@ -113,13 +113,13 @@ function setupRegisterModal() {
 }
 
 /**
- * Pide los datos de un servicio a la API y los muestra en el modal de detalles.
- * @param {string} serviceId - El ID del servicio a mostrar.
+ * Fetch service data from the API and display it in the details modal.
+ * @param {string} serviceId - The service ID to display.
  */
 async function showServiceDetailModal(serviceId) {
     const detailModalEl = document.getElementById('serviceDetailModal');
     if (!detailModalEl) {
-        console.error('Error: El molde del modal #serviceDetailModal no se encontró en el HTML.');
+        console.error('Error: template for modal #serviceDetailModal not found in HTML.');
         return;
     }
     
@@ -128,7 +128,7 @@ async function showServiceDetailModal(serviceId) {
     const modalTitle = document.getElementById('detail-modal-title');
     
     if (!modalBody || !modalTitle) {
-        console.error('Error: Faltan elementos internos en el modal de detalles.');
+        console.error('Error: missing internal elements in the details modal.');
         return;
     }
 
@@ -160,29 +160,29 @@ async function showServiceDetailModal(serviceId) {
             </div>
         `;
         
-        // Configurar la imagen del proveedor con fallback de avatar usando setTimeout para asegurar que el elemento esté en el DOM
+    // Configure provider image with fallback via setTimeout to ensure element exists in DOM
         setTimeout(() => {
             const modalImg = document.getElementById('modal-provider-image');
             if (modalImg) {
                 setupImageFallback(modalImg, service.provider_name, service.personal_picture, 120);
             }
-        }, 50); // Pequeño delay para asegurar que el elemento esté disponible
+    }, 50); // Small delay to ensure element is available
     } catch (error) {
         modalBody.innerHTML = `<p class="text-danger text-center">${error.message}</p>`;
     }
 }
 
 // ===================================================================
-// MANEJADORES DE EVENTOS DE CLIC (HANDLERS)
+// CLICK EVENT HANDLERS
 // ===================================================================
 
-/** Maneja el clic en el botón "Ver Más" de una tarjeta de servicio. */
+/** Handle click on "Ver Más" button in a service card. */
 function handleSeeMoreClick(target) {
     const serviceId = target.dataset.serviceId;
     showServiceDetailModal(serviceId);
 }
 
-/** Maneja el clic en el botón "Contactar" dentro del modal de detalles. */
+/** Handle click on "Contactar" inside the details modal. */
 async function handleContactClick(target) {
     const serviceId = target.dataset.serviceId;
     
@@ -193,7 +193,7 @@ async function handleContactClick(target) {
         const result = await startConversation(serviceId);
         setTimeout(() => openChatModal(result.id_conversation), 300);
     } catch (error) {
-        if (error.message.includes('iniciar sesión') || error.message.includes('Sesión expirada')) {
+    if (error.message.includes('iniciar sesión') || error.message.includes('Sesión expirada')) {
             const authModal = new bootstrap.Modal(document.getElementById('authActionModal'));
             authModal.show();
         } else {
@@ -203,41 +203,41 @@ async function handleContactClick(target) {
 }
 
 // ===================================================================
-// FUNCIÓN PRINCIPAL EXPORTADA
+// EXPORTED MAIN FUNCTION
 // ===================================================================
 
 /**
- * Configura todos los listeners relacionados con modales en la página.
+ * Wire all listeners related to modals on the page.
  */
 export function setupModalListeners() {
-    // 1. Configura la lógica interna del modal de registro
+    // 1) Wire internal logic for register modal
     setupRegisterModal();
 
-    // 2. Listener general que delega los clics a las funciones correspondientes
+    // 2) Global delegated listener for click actions
     document.body.addEventListener('click', (e) => {
         const seeMoreBtn = e.target.closest('.btn-see-more');
         const contactBtn = e.target.closest('#modal-contact-btn');
         const authModalLoginBtn = e.target.closest('#auth-modal-login-btn');
         const authModalRegisterBtn = e.target.closest('#auth-modal-register-btn');
 
-        // Si se hace clic en "Ver Más" en una tarjeta de servicio
+        // If clicking on "Ver Más" in a service card
         if (seeMoreBtn) {
             const serviceId = seeMoreBtn.dataset.serviceId;
             showServiceDetailModal(serviceId);
         }
-        // Si se hace clic en "Contactar" DENTRO del modal de detalles
+        // If clicking on "Contactar" INSIDE details modal
         else if (contactBtn) {
             const serviceId = contactBtn.dataset.serviceId;
             handleContactClick(contactBtn);
         }
-        // Si se hace clic en "Iniciar Sesión" DENTRO del modal elegante
+        // If clicking on "Iniciar Sesión" INSIDE the auth prompt modal
         else if (authModalLoginBtn) {
             const authActionModal = bootstrap.Modal.getInstance(document.getElementById('authActionModal'));
             if (authActionModal) authActionModal.hide();
-            // Esperamos a que el primer modal se cierre para abrir el segundo
+            // Wait for the first modal to close before opening the second
             setTimeout(() => new bootstrap.Modal(document.getElementById('loginModal')).show(), 300);
         }
-        // Si se hace clic en "Crear una Cuenta" DENTRO del modal elegante
+        // If clicking on "Crear una Cuenta" INSIDE the auth prompt modal
         else if (authModalRegisterBtn) {
             const authActionModal = bootstrap.Modal.getInstance(document.getElementById('authActionModal'));
             if (authActionModal) authActionModal.hide();

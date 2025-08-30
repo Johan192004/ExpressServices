@@ -4,19 +4,19 @@ import { loginUser, registerClient, registerProvider, checkEmailExists, requestP
 import { showAlert } from '../utils/modalUtils.js';
 
 /**
- * Añade un listener a un campo de email para verificar si el email ya existe en la DB
- * y ajusta la UI del formulario de registro dinámicamente.
+ * Adds a listener to an email field to check if the email exists in the DB
+ * and adjusts the registration form UI dynamically.
  */
 function setupSmartEmailCheck(emailInputId, passwordInputId, messageDivId) {
     const emailInput = document.getElementById(emailInputId);
     const passwordInput = document.getElementById(passwordInputId);
     const messageDiv = document.getElementById(messageDivId);
 
-    if (!emailInput || !passwordInput || !messageDiv) return; // Verificación más robusta
+    if (!emailInput || !passwordInput || !messageDiv) return; // Robust guard
 
     emailInput.addEventListener('blur', async (e) => {
         const email = e.target.value;
-        const defaultPlaceholder = 'Contraseña (mín. 8 caracteres)';
+    const defaultPlaceholder = 'Contraseña (mín. 8 caracteres)';
         if (!email || !e.target.checkValidity()) {
             passwordInput.disabled = false;
             passwordInput.placeholder = defaultPlaceholder;
@@ -34,14 +34,14 @@ function setupSmartEmailCheck(emailInputId, passwordInputId, messageDivId) {
             }
             passwordInput.disabled = false;
             passwordInput.value = '';
-        } catch (error) { console.error(error); }
+    } catch (error) { console.error(error); }
     });
 }
 
 
 /**
- * Función principal que configura todos los formularios de autenticación
- * (Login, Registro Cliente/Proveedor, Olvidé Contraseña).
+ * Main function that wires all authentication forms
+ * (Login, Client/Provider Register, Forgot Password).
  */
 export function setupAuthForms() {
     setupSmartEmailCheck('provider-email', 'provider-password', 'provider-form-message');
@@ -72,16 +72,16 @@ if (loginForm) {
                     loginResultDiv.className = 'mt-3 text-center text-success';
                 }
                 setTimeout(() => {
-                    // Verificamos los roles que nos devolvió el backend
+                    // Check roles returned by backend
                     const userRoles = result.user.roles || [];
 
-                    // Priorizamos la vista de cliente si tiene ambos roles
+                    // Prefer client view if both roles
                     if (userRoles.includes('client')) {
                         window.location.href = '/frontend/views/private/client.html';
                     } else if (userRoles.includes('provider')) {
                         window.location.href = '/frontend/views/private/provider.html';
                     } else {
-                        // Si por alguna razón no tiene rol, recargamos el index
+                        // If no role, clear and reload index
                         window.localStorage.clear();
                         window.location.href = '/index.html';
                     }
@@ -92,7 +92,7 @@ if (loginForm) {
                     loginResultDiv.textContent = `Error: ${error.message}`;
                     loginResultDiv.className = 'mt-3 text-center text-danger';
                 }
-                console.error("Error de login:", error);
+                console.error("Login error:", error);
             }
         });
     }

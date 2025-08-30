@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator'); 
 const { googleLogin } = require('../controllers/googleAuthController');
 
-// Reglas de validación para el login
+// Validation rules for login
 const loginValidationRules = [
     body('email', 'Por favor, ingresa un correo válido').isEmail().normalizeEmail(),
     body('password', 'La contraseña no puede estar vacía').not().isEmpty()
@@ -21,25 +21,25 @@ router.post("/", loginValidationRules, async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        // Buscamos al usuario por su email
+    // Find user by email
         const [users] = await pool.query("SELECT * FROM users WHERE email = ?", [email]);
 
         if (users.length === 0) {
-            // Por seguridad, usamos un mensaje genérico
+            // Use a generic message for security
             return res.status(401).json({ error: "Credenciales incorrectas." });
         }
 
         const user = users[0];
 
-        // Comparamos la contraseña enviada con la de la base de datos
+    // Compare provided password against stored hash
         const isMatch = await bcrypt.compare(password, user.password_hash);
 
         if (!isMatch) {
             return res.status(401).json({ error: "Credenciales incorrectas." });
         }
 
-        // Determinamos TODOS los roles del usuario
-        // Inicializamos un array vacío para los roles
+    // Determine ALL roles for the user
+    // Initialize an empty roles array
         let roles = []; 
 
         const [clients] = await pool.query("SELECT id_client FROM clients WHERE id_user = ?", [user.id_user]);
@@ -56,7 +56,7 @@ router.post("/", loginValidationRules, async (req, res) => {
             return res.status(403).json({ error: "Este usuario no tiene un rol asignado." });
         }
         
-        // Creamos el payload del token con el array 'roles'
+    // Create token payload including roles array
         const payload = {
             user: {
                 id: user.id_user,
@@ -64,7 +64,7 @@ router.post("/", loginValidationRules, async (req, res) => {
             }
         };
 
-        // Firmamos y enviamos el token
+    // Sign and return the token
         jwt.sign(
             payload,
             process.env.JWT_SECRET,
@@ -89,7 +89,7 @@ router.post("/", loginValidationRules, async (req, res) => {
         );
 
     } catch (err) {
-        console.error("Error en el login:", err);
+    console.error("Login error:", err);
         res.status(500).json({ error: "Error en el servidor" });
     }
 });

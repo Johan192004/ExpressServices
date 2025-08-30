@@ -3,22 +3,23 @@
 import { getClientById, putClient, getUserProfile } from "./api/authService.js";
 import { getServices, getCategories, getClientConversations, startConversation, getServiceById, createContract, getContracts, completeContract, deleteContract } from './api/authService.js';
 import { openChatModal } from './ui/chat.js';
+import { showAlert, showConfirm, cleanupModalBackdrops as cleanupModalBackdropsUtil } from './utils/modalUtils.js';
 import { getFavoritesById, postFavorite, deleteFavorite } from "./api/favorites.js";
 import { getReviewsByServiceId, postReview } from "./api/reviews.js";
 import { initContractHistory } from './contractHistory.js';
 
 // ===================================================================
-// PUNTO DE ENTRADA PRINCIPAL
+// MAIN ENTRY POINT
 // ===================================================================
-let myClientId = null; // El ID de cliente del usuario logueado
-let myUserId = null; // El ID de usuario del usuario logueado
-let currentFavorites = []; // Array para almacenar los IDs de servicios favoritos
+let myClientId = null; // Logged-in user's client ID
+let myUserId = null; // Logged-in user's user ID
+let currentFavorites = []; // Stores favorite service IDs
 
-// Limpiar variable global al iniciar para evitar conflictos
+// Reset global variable at start to avoid conflicts
 window.currentServiceData = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Verificamos si el usuario tiene permiso para estar aquí
+    // 1) Check if the user is allowed to be here
     if (!localStorage.getItem('token')) {
         showModal('Acceso Denegado', 'Debes iniciar sesión para acceder a esta página.', 'warning', () => {
             window.localStorage.clear();
@@ -36,46 +37,46 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
     myClientId = userProfile.id_client;
-    myUserId = userProfile.id_user; // Almacenar el ID de usuario para verificaciones
+    myUserId = userProfile.id_user; // Store user ID for validations
 
-    // 2. Actualizar el enlace de perfil con el nombre del usuario
+    // 2) Update the profile link with the user's name
     updateProfileLink(userProfile.full_name);
 
-    // 3. Cargamos los favoritos del usuario
+    // 3) Load user's favorites
     await loadCurrentFavorites();
 
-    // 4. Cargamos todos los componentes dinámicos de la página
-    initContractHistory(); // Inicializar sistema de historial de contratos
+    // 4) Load all dynamic components on the page
+    initContractHistory(); // Initialize contract history system
     loadAndRenderClientConversations();
     loadAndSetupCategories();
     setupPageEventListeners();
     loadAndRenderClientContracts();
     setupFavoritesButton();
     setupProfileModal();
-    setupScrollToTopButton(); // Configurar botón de scroll
+    setupScrollToTopButton(); // Set up scroll-to-top button
 });
 
 
 // ===================================================================
-// SECCIÓN 1: LÓGICA DE CARGA Y RENDERIZACIÓN DE DATOS
+// SECTION 1: DATA LOADING AND RENDERING LOGIC
 // ===================================================================
 
 /**
- * Actualiza el enlace de perfil en el header con el nombre del usuario.
+ * Update the profile link in the header with the user's name.
  */
 function updateProfileLink(fullName) {
     const profileDropdown = document.getElementById('profile-dropdown');
     if (profileDropdown && fullName) {
-        // Extraer solo el primer nombre para mostrar en el header
+    // Extract only the first name to show in the header
         const firstName = fullName.split(' ')[0];
         profileDropdown.innerHTML = `<i class="bi bi-person-circle me-1"></i> ${firstName}`;
-        profileDropdown.title = `Perfil de ${fullName}`; // Tooltip con el nombre completo
+    profileDropdown.title = `Perfil de ${fullName}`; // Tooltip with full name (UI string stays Spanish)
         
-        // Agregar estilos: fondo azul, texto blanco, forma ovalada
-        // Usamos clases de Bootstrap para consistencia y luego sobreescribimos
+    // Styles: blue background, white text, pill shape
+    // Use Bootstrap classes for consistency and selectively override
         profileDropdown.className = 'btn btn-primary btn-sm dropdown-toggle';
         profileDropdown.style.cssText = `
-            border-radius: 999px; /* ovalado */
+            border-radius: 999px; /* pill shape */
             padding: 5px 14px;
             font-weight: 500;
             transition: all 0.18s ease;
@@ -86,7 +87,7 @@ function updateProfileLink(fullName) {
             box-shadow: 0 2px 6px rgba(13,110,253,0.18);
         `;
         
-        // Quitar el borde circular del dropdown menu
+    // Tweak dropdown menu styles
         const dropdownMenu = profileDropdown.nextElementSibling;
         if (dropdownMenu && dropdownMenu.classList.contains('dropdown-menu')) {
             dropdownMenu.style.cssText = `
@@ -97,7 +98,7 @@ function updateProfileLink(fullName) {
                 overflow: visible !important;
             `;
             
-            // También aplicar estilos a los items del dropdown
+            // Apply consistent styles to dropdown items
             const dropdownItems = dropdownMenu.querySelectorAll('.dropdown-item');
             dropdownItems.forEach(item => {
                 item.style.cssText = `
@@ -109,7 +110,7 @@ function updateProfileLink(fullName) {
             });
         }
 
-        // Usar propiedades onmouseenter/onmouseleave para evitar múltiples listeners
+    // Use onmouseenter/onmouseleave to avoid stacking listeners
         profileDropdown.onmouseenter = function() {
             this.style.backgroundColor = '#0b5ed7';
             this.style.transform = 'translateY(-1px)';
@@ -125,7 +126,7 @@ function updateProfileLink(fullName) {
 }
 
 /**
- * Carga los favoritos actuales del usuario desde la API.
+ * Load user's current favorites from the API.
  */
 async function loadCurrentFavorites() {
     if (!myClientId) return;
@@ -133,13 +134,13 @@ async function loadCurrentFavorites() {
         const favorites = await getFavoritesById(myClientId);
         currentFavorites = favorites.map(fav => fav.id_service);
     } catch (error) {
-        console.error('Error al cargar favoritos:', error);
+    console.error('Error loading favorites:', error);
         currentFavorites = [];
     }
 }
 
 /**
- * Pide las conversaciones del cliente a la API y las muestra en la bandeja de entrada.
+ * Fetch client's conversations from the API and render them in the inbox.
  */
 async function loadAndRenderClientConversations() {
     const container = document.getElementById('client-conversations-container');
@@ -167,19 +168,19 @@ async function loadAndRenderClientConversations() {
                 </a>`;
         });
     } catch (error) {
-        console.error("Error al cargar conversaciones:", error);
+    console.error("Error loading conversations:", error);
         container.innerHTML = '<p class="text-danger">Error al cargar tus mensajes.</p>';
     }
 }
 
 /**
- * Pide las categorías a la API, las traduce y las muestra en la página.
+ * Fetch categories from the API, translate, and render on the page.
  */
 async function loadAndSetupCategories() {
     const container = document.getElementById('category-container');
     if (!container) return;
     
-    // Mapa de traducción basado en los nuevos títulos en español devueltos por la DB
+    // Translation map based on DB Spanish titles
     const categoryTranslationMap = {
         'Plomería': { name: 'Plomería', icon: 'bi-wrench-adjustable' },
         'Electricidad': { name: 'Electricidad', icon: 'bi-plug-fill' },
@@ -191,7 +192,7 @@ async function loadAndSetupCategories() {
         const categories = await getCategories();
         container.innerHTML = '';
         categories.forEach(category => {
-            // Buscamos la traducción; si no existe, usamos el nombre de la DB
+            // Lookup translation; fallback to DB name if missing
             const translation = categoryTranslationMap[category.title] || { name: category.title, icon: 'bi-tools' };
             container.innerHTML += `
                 <div class="col-6 col-md-3">
@@ -202,11 +203,11 @@ async function loadAndSetupCategories() {
                 </div>`;
         });
     } catch (error) {
-        container.innerHTML = '<p class="text-danger small">No se pudieron cargar las categorías.</p>';
+    container.innerHTML = '<p class="text-danger small">No se pudieron cargar las categorías.</p>';
     }
 }
 /**
- * "Pinta" una lista de servicios en su contenedor correspondiente.
+ * Render a list of services in the container.
  */
 function renderServices(services) {
     const servicesContainer = document.getElementById("servicio-container");
@@ -236,7 +237,7 @@ function renderServices(services) {
                 </div>
             </div>`;
         
-        // Configurar fallback para la imagen después de agregar al DOM
+    // Set image fallback after adding to the DOM
         const img = cardElement.querySelector('.provider-avatar');
         setupImageFallback(img, service.provider_name, service.personal_picture, 60);
         
@@ -245,10 +246,10 @@ function renderServices(services) {
 }
 
 /**
- * Muestra un modal con la información detallada de un servicio.
+ * Show a modal with detailed information about a service.
  */
 async function showServiceDetailModal(serviceId) {
-    // Limpiar cualquier modal anterior y backdrop residual de manera más agresiva
+    // Aggressively clear any previous modal and residual backdrops
     const existingModal = document.getElementById('serviceDetailModal');
     if (existingModal) {
         const modalInstance = bootstrap.Modal.getInstance(existingModal);
@@ -259,7 +260,7 @@ async function showServiceDetailModal(serviceId) {
     }
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
     
-    // Limpiar la variable global antes de cargar nuevos datos
+    // Clear the global variable before loading new data
     window.currentServiceData = null;
     
     
@@ -267,25 +268,14 @@ async function showServiceDetailModal(serviceId) {
         const service = await getServiceById(serviceId);
         window.currentServiceData = service;
         
-        // Verificar si el usuario logueado es el mismo que ofrece el servicio
-        console.log('=== DEBUG VERIFICACIÓN DE SERVICIO ===');
-        console.log('myUserId:', myUserId, 'tipo:', typeof myUserId);
-        console.log('Objeto service completo:', service);
-        console.log('service.id_user:', service.id_user, 'tipo:', typeof service.id_user);
-        console.log('service.provider_id:', service.provider_id, 'tipo:', typeof service.provider_id);
-        console.log('service.user_id:', service.user_id, 'tipo:', typeof service.user_id);
-        console.log('¿Son iguales?:', myUserId === service.id_user);
-        console.log('¿Ambos existen?:', myUserId && service.id_user);
-        console.log('=====================================');
+    // Verify if the logged-in user is the same who offers the service
         
-        const isOwnService = myUserId && service.id_user && myUserId === service.id_user;
-        console.log('isOwnService final:', isOwnService);
+    const isOwnService = myUserId && service.id_user && myUserId === service.id_user;
         
-        // Crear botones condicionalmente
+        // Create buttons conditionally
         let actionButtons = '';
         if (isOwnService) {
-            console.log('Mostrando como PROPIO servicio');
-            // Si es su propio servicio, mostrar mensaje informativo
+            // If it's their own service, show informational message
             actionButtons = `
                 <div>
                     <button type="button" class="btn btn-outline-dark me-2" id="btn-show-reviews">Ver reviews</button>
@@ -297,8 +287,7 @@ async function showServiceDetailModal(serviceId) {
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                 </div>`;
         } else {
-            console.log('Mostrando como servicio de OTRO');
-            // Si no es su servicio, mostrar botones normales
+            // If it's not their service, show normal action buttons
             actionButtons = `
                 <div>
                     <button type="button" class="btn btn-outline-dark me-2" id="btn-show-reviews">Ver reviews</button>
@@ -342,40 +331,40 @@ async function showServiceDetailModal(serviceId) {
             </div>`;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // Configurar fallback para la imagen del modal después de agregar al DOM
+    // Set fallback for modal image after inserting into DOM
         const modalImg = document.getElementById('modal-provider-avatar');
         setupImageFallback(modalImg, service.provider_name, service.personal_picture, 120);
         
-        // Esperar un poco para asegurar que el DOM se actualice completamente
+    // Wait briefly to ensure DOM updates fully
         await new Promise(resolve => setTimeout(resolve, 50));
         
         const serviceModal = new bootstrap.Modal(document.getElementById('serviceDetailModal'));
         serviceModal.show();
         
 
-        // Evento para mostrar reviews (ahora en el footer)
+    // Event to show reviews (now in the footer)
         document.getElementById('btn-show-reviews').addEventListener('click', async () => {
-            // Ocultar el modal de detalles del servicio temporalmente
+            // Temporarily hide the service detail modal
             const detailModal = bootstrap.Modal.getInstance(document.getElementById('serviceDetailModal'));
             if (detailModal) {
                 detailModal.hide();
             }
             
-            // Esperar a que el modal se oculte completamente y luego mostrar reviews
+            // Wait for the modal to fully hide and then show reviews
             document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function showReviewsAfterHide() {
                 showReviewsModal(service.id_service, serviceId);
-                // Remover este listener para evitar múltiples ejecuciones
+                // Remove this listener to avoid multiple executions
                 this.removeEventListener('hidden.bs.modal', showReviewsAfterHide);
             });
         });
         
-        // Limpiar backdrop cuando se cierre este modal
+    // Cleanup backdrop when this modal closes
         document.getElementById('serviceDetailModal').addEventListener('hidden.bs.modal', function() {
             cleanupModalBackdrops();
-            // Solo limpiar la variable global si el modal se está cerrando definitivamente
-            // (no temporalmente para mostrar otro modal)
+            // Only reset the global variable if the modal is closing for good
+            // (not temporarily to display another modal)
             setTimeout(() => {
-                // Si después de 100ms no hay otros modales abiertos, entonces limpiar
+                // If after 100ms there are no other open modals, then clear
                 const openModals = document.querySelectorAll('.modal.show');
                 if (openModals.length === 0) {
                     window.currentServiceData = null;
@@ -384,13 +373,13 @@ async function showServiceDetailModal(serviceId) {
         });
         
     } catch (error) {
-        showModal('Error', 'Error al cargar detalles del servicio.', 'error');
+    showModal('Error', 'Error al cargar detalles del servicio.', 'error');
     }
 }
 
 /**
- * Maneja el clic en el botón de favoritos para agregar o quitar de favoritos.
- * @param {string} serviceId - El ID del servicio.
+ * Handle favorite button click to add or remove favorites.
+ * @param {string} serviceId - Service ID.
  */
 async function toggleFavorite(serviceId) {
     if (!myClientId) {
@@ -402,16 +391,16 @@ async function toggleFavorite(serviceId) {
     
     try {
         if (isFavorite) {
-            // Quitar de favoritos
+            // Remove from favorites
             await deleteFavorite({ id_client: myClientId, id_service: serviceId });
             currentFavorites = currentFavorites.filter(id => id !== parseInt(serviceId));
         } else {
-            // Agregar a favoritos
+            // Add to favorites
             await postFavorite({ id_client: myClientId, id_service: serviceId });
             currentFavorites.push(parseInt(serviceId));
         }
         
-        // Actualizar la estrella en la interfaz
+    // Update the star icon in the UI
         const favoriteBtn = document.querySelector(`[data-service-id="${serviceId}"].favorite-btn`);
         if (favoriteBtn) {
             const icon = favoriteBtn.querySelector('i');
@@ -427,13 +416,13 @@ async function toggleFavorite(serviceId) {
         }
         
     } catch (error) {
-        console.error('Error al actualizar favoritos:', error);
+    console.error('Error updating favorites:', error);
         showModal('Error', 'Error al actualizar favoritos. Inténtalo de nuevo.', 'error');
     }
 }
 
 /**
- * Abre un modal para visualizar los servicios favoritos del cliente.
+ * Open a modal to display the client's favorite services.
  */
 async function showFavoriteServices() {
     if (!myClientId) {
@@ -441,7 +430,7 @@ async function showFavoriteServices() {
         return;
     }
     
-    // Recargar favoritos actuales
+    // Reload current favorites
     await loadCurrentFavorites();
     
     let favorites = [];
@@ -452,7 +441,7 @@ async function showFavoriteServices() {
         return;
     }
     
-    // Eliminar modal anterior si existe
+    // Remove previous modal if it exists
     let oldModal = document.getElementById('favoritesModal');
     if (oldModal) oldModal.remove();
 
@@ -477,7 +466,7 @@ async function showFavoriteServices() {
         </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     
-    // Agregar las tarjetas de favoritos con fallback de imágenes
+    // Add favorite cards with image fallback
     const favoritesContainer = document.getElementById('favorites-container');
     favorites.forEach(service => {
         const cardElement = document.createElement('div');
@@ -494,7 +483,7 @@ async function showFavoriteServices() {
                 </div>
             </div>`;
         
-        // Configurar fallback para la imagen después de agregar al DOM
+    // Set image fallback after adding to the DOM
         const img = cardElement.querySelector('.provider-avatar');
         setupImageFallback(img, service.provider_name, service.personal_picture, 60);
         
@@ -504,39 +493,39 @@ async function showFavoriteServices() {
     const favoritesModal = new bootstrap.Modal(document.getElementById('favoritesModal'));
     favoritesModal.show();
     
-    // Limpiar backdrop cuando se cierre el modal de favoritos normalmente
+    // Clean up backdrop when the favorites modal closes normally
     document.getElementById('favoritesModal').addEventListener('hidden.bs.modal', function() {
         cleanupModalBackdrops();
     });
     
-    // Agregar event listener para los botones "Ver Detalles" dentro del modal de favoritos
+    // Add event listener for "Ver Detalles" buttons inside the favorites modal
     document.getElementById('favoritesModal').addEventListener('click', (e) => {
         const seeMoreBtn = e.target.closest('.btn-see-more');
         if (seeMoreBtn) {
-            e.preventDefault(); // Prevenir comportamiento por defecto
-            e.stopPropagation(); // Evitar que el evento se propague al listener global
+            e.preventDefault(); // Prevent default behavior
+            e.stopPropagation(); // Stop event from bubbling to global listener
             
             const serviceId = seeMoreBtn.dataset.serviceId;
             
-            // Cerrar el modal de favoritos completamente y limpiar el backdrop
+            // Close the favorites modal completely and clean the backdrop
             favoritesModal.hide();
             
-            // Asegurar que el backdrop se elimine completamente
+            // Ensure the backdrop is fully removed
             favoritesModal._element.addEventListener('hidden.bs.modal', function handleModalHidden() {
-                // Remover cualquier backdrop que pueda quedar
+                // Remove any leftover backdrops
                 document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
                 
-                // Restaurar el scroll del body
+                // Restore body scroll state
                 document.body.classList.remove('modal-open');
                 document.body.style.removeProperty('padding-right');
                 
-                // Limpiar datos previos antes de mostrar el nuevo modal
+                // Clear previous data before showing the new modal
                 window.currentServiceData = null;
                 
-                // Mostrar el modal de detalles del servicio
+                // Show the service detail modal
                 showServiceDetailModal(serviceId);
                 
-                // Remover este event listener para evitar múltiples ejecuciones
+                // Remove this event listener to avoid multiple executions
                 this.removeEventListener('hidden.bs.modal', handleModalHidden);
             });
         }
@@ -544,14 +533,14 @@ async function showFavoriteServices() {
 }
 
 /**
- * Muestra un modal con las reviews de un servicio específico.
+ * Show a modal with the reviews of a specific service.
  */
 async function showReviewsModal(serviceId) {
-    // Eliminar modal anterior si existe
+    // Remove previous reviews modal if it exists
     let oldModal = document.getElementById('reviewsModal');
     if (oldModal) oldModal.remove();
 
-    // Limpiar cualquier backdrop residual antes de crear el nuevo modal
+    // Clean any residual backdrops before creating the new modal
     document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
 
     try {
@@ -603,7 +592,7 @@ async function showReviewsModal(serviceId) {
         
         document.body.insertAdjacentHTML('beforeend', modalHtml);
         
-        // Crear el modal con configuración explícita para asegurar el backdrop
+    // Create the modal with explicit config to ensure the backdrop
         const reviewsModal = new bootstrap.Modal(document.getElementById('reviewsModal'), {
             backdrop: true,
             keyboard: true,
@@ -611,24 +600,24 @@ async function showReviewsModal(serviceId) {
         });
         reviewsModal.show();
         
-        // Configurar evento para restaurar el modal de detalles cuando se cierre el modal de reviews
+    // Setup event to restore the detail modal when the reviews modal closes
         document.getElementById('reviewsModal').addEventListener('hidden.bs.modal', function() {
-            // Limpiar backdrops residuales
+            // Clean residual backdrops
             cleanupModalBackdrops();
             
-            // Restaurar el modal de detalles del servicio inmediatamente
+            // Immediately restore the service detail modal
             const serviceDetailModal = document.getElementById('serviceDetailModal');
             if (serviceDetailModal) {
                 const detailModal = new bootstrap.Modal(serviceDetailModal);
                 detailModal.show();
             }
-        }, { once: true }); // Solo ejecutar una vez
+    }, { once: true }); // Execute once
         
     } catch (error) {
-        console.error('Error al cargar reviews:', error);
+    console.error('Error loading reviews:', error);
         showModal('Error', 'Error al cargar las reviews del servicio.', 'error');
         
-        // Si hay error, también restaurar el modal de detalles inmediatamente
+    // If there is an error, also restore the detail modal immediately
         const serviceDetailModal = document.getElementById('serviceDetailModal');
         if (serviceDetailModal) {
             const detailModal = new bootstrap.Modal(serviceDetailModal);
@@ -638,179 +627,63 @@ async function showReviewsModal(serviceId) {
 }
 
 /**
- * Función utilitaria para limpiar backdrops residuales de Bootstrap modals
+ * Utility function to clean residual backdrops from Bootstrap modals
  */
 function cleanupModalBackdrops() {
-    // Remover todos los backdrops
-    document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-    
-    // Restaurar el estado del body
-    document.body.classList.remove('modal-open');
-    document.body.style.removeProperty('padding-right');
-    document.body.style.removeProperty('overflow');
+    // Delegate to shared utility to avoid duplication
+    try {
+        cleanupModalBackdropsUtil();
+    } catch (_) {
+    // Defensive fallback
+        document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('padding-right');
+        document.body.style.removeProperty('overflow');
+    }
 }
 
 /**
- * Muestra un modal personalizado en lugar de alert()
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje a mostrar
- * @param {string} type - Tipo de modal: 'success', 'error', 'warning', 'info'
- * @param {function} onConfirm - Función a ejecutar al hacer clic en "Aceptar" (opcional)
+ * Show a custom modal instead of alert()
+ * @param {string} title - Modal title
+ * @param {string} message - Message to show
+ * @param {string} type - Modal type: 'success', 'error', 'warning', 'info'
+ * @param {function} onConfirm - Callback on confirm (optional)
  */
 function showModal(title, message, type = 'info', onConfirm = null) {
-    // Limpiar modal anterior si existe
-    const existingModal = document.getElementById('customModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    // Definir colores y iconos según el tipo
-    const modalConfig = {
-        success: {
-            headerClass: 'bg-success text-white',
-            icon: 'bi-check-circle-fill',
-            iconColor: 'text-success',
-            buttonClass: 'btn-success'
-        },
-        error: {
-            headerClass: 'bg-danger text-white',
-            icon: 'bi-exclamation-triangle-fill',
-            iconColor: 'text-danger',
-            buttonClass: 'btn-danger'
-        },
-        warning: {
-            headerClass: 'bg-warning text-dark',
-            icon: 'bi-exclamation-triangle-fill',
-            iconColor: 'text-warning',
-            buttonClass: 'btn-warning'
-        },
-        info: {
-            headerClass: 'bg-primary text-white',
-            icon: 'bi-info-circle-fill',
-            iconColor: 'text-primary',
-            buttonClass: 'btn-primary'
-        }
-    };
-    
-    const config = modalConfig[type] || modalConfig.info;
-    
-    const modalHtml = `
-        <div class="modal fade" id="customModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header ${config.headerClass}">
-                        <h5 class="modal-title">
-                            <i class="bi ${config.icon} me-2"></i>
-                            ${title}
-                        </h5>
-                    </div>
-                    <div class="modal-body text-center py-4">
-                        <i class="bi ${config.icon} ${config.iconColor}" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
-                    </div>
-                    <div class="modal-footer justify-content-center border-0">
-                        <button type="button" class="btn ${config.buttonClass} px-4" id="customModalConfirm">Aceptar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = new bootstrap.Modal(document.getElementById('customModal'));
-    modal.show();
-    
-    // Manejar el botón de confirmación
-    document.getElementById('customModalConfirm').addEventListener('click', () => {
-        modal.hide();
-        if (onConfirm && typeof onConfirm === 'function') {
-            onConfirm();
-        }
-    });
-    
-    // Limpiar el modal del DOM cuando se oculte
-    document.getElementById('customModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-        cleanupModalBackdrops();
+    // Use shared utility; keeps consistent styles and behavior
+    return showAlert(message, type, title).then(() => {
+        if (typeof onConfirm === 'function') onConfirm();
     });
 }
 
 /**
- * Muestra un modal de confirmación en lugar de confirm()
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje de confirmación
- * @param {function} onConfirm - Función a ejecutar si confirma
- * @param {function} onCancel - Función a ejecutar si cancela (opcional)
+ * Show a confirmation modal instead of confirm()
+ * @param {string} title - Modal title
+ * @param {string} message - Confirmation message
+ * @param {function} onConfirm - Callback if confirmed
+ * @param {function} onCancel - Callback if canceled (optional)
  */
 function showConfirmModal(title, message, onConfirm, onCancel = null) {
-    // Limpiar modal anterior si existe
-    const existingModal = document.getElementById('confirmModal');
-    if (existingModal) {
-        existingModal.remove();
-    }
-    
-    const modalHtml = `
-        <div class="modal fade" id="confirmModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-            <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                    <div class="modal-header bg-warning text-dark">
-                        <h5 class="modal-title">
-                            <i class="bi bi-question-circle-fill me-2"></i>
-                            ${title}
-                        </h5>
-                    </div>
-                    <div class="modal-body text-center py-4">
-                        <i class="bi bi-question-circle-fill text-warning" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                        <p class="mb-0" style="font-size: 1.1rem;">${message}</p>
-                    </div>
-                    <div class="modal-footer justify-content-center border-0">
-                        <button type="button" class="btn btn-secondary px-4 me-2" id="confirmModalCancel">Cancelar</button>
-                        <button type="button" class="btn btn-warning px-4" id="confirmModalConfirm">Confirmar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    
-    const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
-    modal.show();
-    
-    // Manejar botones
-    document.getElementById('confirmModalConfirm').addEventListener('click', () => {
-        modal.hide();
-        if (onConfirm && typeof onConfirm === 'function') {
-            onConfirm();
-        }
-    });
-    
-    document.getElementById('confirmModalCancel').addEventListener('click', () => {
-        modal.hide();
-        if (onCancel && typeof onCancel === 'function') {
+    return showConfirm(message, title).then(confirmed => {
+        if (confirmed) {
+            if (typeof onConfirm === 'function') onConfirm();
+        } else if (typeof onCancel === 'function') {
             onCancel();
         }
     });
-    
-    // Limpiar el modal del DOM cuando se oculte
-    document.getElementById('confirmModal').addEventListener('hidden.bs.modal', function() {
-        this.remove();
-        cleanupModalBackdrops();
-    });
 }
 
 /**
- * Muestra un modal de entrada de datos en lugar de prompt()
- * @param {string} title - Título del modal
- * @param {string} message - Mensaje de instrucción
- * @param {string} defaultValue - Valor por defecto del input
- * @param {string} inputType - Tipo de input: 'text', 'number', etc.
- * @param {function} onConfirm - Función a ejecutar con el valor ingresado
- * @param {function} onCancel - Función a ejecutar si cancela (opcional)
+ * Show an input modal instead of prompt()
+ * @param {string} title - Modal title
+ * @param {string} message - Instruction message
+ * @param {string} defaultValue - Default input value
+ * @param {string} inputType - Input type: 'text', 'number', etc.
+ * @param {function} onConfirm - Callback with the entered value
+ * @param {function} onCancel - Callback if canceled (optional)
  */
 function showPromptModal(title, message, defaultValue = '', inputType = 'text', onConfirm, onCancel = null) {
-    // Limpiar modal anterior si existe
+    // Remove previous prompt modal if it exists
     const existingModal = document.getElementById('promptModal');
     if (existingModal) {
         existingModal.remove();
@@ -857,13 +730,13 @@ function showPromptModal(title, message, defaultValue = '', inputType = 'text', 
     
     modal.show();
     
-    // Enfocar y seleccionar el input después de que se muestre el modal
+    // Focus and select the input after the modal is shown
     document.getElementById('promptModal').addEventListener('shown.bs.modal', function() {
         input.focus();
         input.select();
     });
     
-    // Manejar botones
+    // Handle buttons
     document.getElementById('promptModalConfirm').addEventListener('click', () => {
         const value = input.value.trim();
         modal.hide();
@@ -879,38 +752,31 @@ function showPromptModal(title, message, defaultValue = '', inputType = 'text', 
         }
     });
     
-    // Permitir confirmar con Enter
+    // Allow submitting with Enter key
     input.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             document.getElementById('promptModalConfirm').click();
         }
     });
     
-    // Limpiar el modal del DOM cuando se oculte
+    // Remove the modal from the DOM when hidden
     document.getElementById('promptModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
-        // NO llamar cleanupModalBackdrops() aquí para no interferir con el modal de detalles
+    // Do NOT call cleanupModalBackdrops() here to avoid interfering with detail modal stacking
     });
 }
 
 /**
- * Muestra un modal para que el cliente deje una review del servicio antes de marcar como terminado
- * @param {string} contractId - ID del contrato
- * @param {string} serviceId - ID del servicio
- * @param {string} serviceName - Nombre del servicio
- * @param {string} providerName - Nombre del proveedor
- * @param {function} onComplete - Función a ejecutar después de completar la review y el contrato
+ * Show a modal for the client to leave a review before marking the contract as completed
+ * @param {string} contractId - Contract ID
+ * @param {string} serviceId - Service ID
+ * @param {string} serviceName - Service name
+ * @param {string} providerName - Provider name
+ * @param {function} onComplete - Callback after submitting review and completing contract
  */
 function showReviewModal(contractId, serviceId, serviceName, providerName, onComplete) {
-    console.log('=== SHOW REVIEW MODAL ===');
-    console.log('Parámetros recibidos:');
-    console.log('contractId:', contractId, 'tipo:', typeof contractId);
-    console.log('serviceId:', serviceId, 'tipo:', typeof serviceId);
-    console.log('serviceName:', serviceName, 'tipo:', typeof serviceName);
-    console.log('providerName:', providerName, 'tipo:', typeof providerName);
-    console.log('========================');
-    
-    // Limpiar modal anterior si existe
+
+    // Remove previous review modal if it exists
     const existingModal = document.getElementById('reviewModal');
     if (existingModal) {
         existingModal.remove();
@@ -994,7 +860,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
     
     let selectedRating = 0;
     
-    // Manejar las estrellas de calificación
+    // Handle rating stars
     const stars = document.querySelectorAll('.star-rating');
     const submitBtn = document.getElementById('reviewModalSubmit');
     const descriptionTextarea = document.getElementById('review-description');
@@ -1004,7 +870,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
             selectedRating = index + 1;
             document.getElementById('selected-rating').value = selectedRating;
             
-            // Actualizar visualización de estrellas
+            // Update star visuals
             stars.forEach((s, i) => {
                 if (i < selectedRating) {
                     s.classList.add('active');
@@ -1020,7 +886,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
             checkFormValidity();
         });
         
-        // Efecto hover
+    // Hover effect
         star.addEventListener('mouseenter', () => {
             stars.forEach((s, i) => {
                 if (i <= index) {
@@ -1032,7 +898,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
         });
     });
     
-    // Restaurar colores al salir del hover
+    // Restore colors on hover exit
     document.getElementById('rating-stars').addEventListener('mouseleave', () => {
         stars.forEach((s, i) => {
             if (i < selectedRating) {
@@ -1043,7 +909,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
         });
     });
     
-    // Validar formulario
+    // Validate form
     function checkFormValidity() {
         const description = descriptionTextarea.value.trim();
         const hasRating = selectedRating > 0;
@@ -1054,7 +920,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
     
     descriptionTextarea.addEventListener('input', checkFormValidity);
     
-    // Manejar botón de enviar review
+    // Handle submit review button
     submitBtn.addEventListener('click', async () => {
         const description = descriptionTextarea.value.trim();
         
@@ -1067,7 +933,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enviando...';
         
         try {
-            // Enviar la review
+            // Send the review
             const reviewData = {
                 id_service: serviceId,
                 id_client: myClientId,
@@ -1082,7 +948,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
                 throw new Error(reviewResult.error);
             }
             
-            // Marcar el contrato como completado
+            // Mark the contract as completed
             await completeContract(contractId);
             
             modal.hide();
@@ -1099,7 +965,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
         }
     });
     
-    // Manejar botón de omitir review
+    // Handle skip review button
     document.getElementById('reviewModalSkip').addEventListener('click', async () => {
         showConfirmModal(
             'Omitir Review',
@@ -1120,7 +986,7 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
         );
     });
     
-    // Limpiar el modal del DOM cuando se oculte
+    // Remove the modal from the DOM when hidden
     document.getElementById('reviewModal').addEventListener('hidden.bs.modal', function() {
         this.remove();
         cleanupModalBackdrops();
@@ -1128,27 +994,27 @@ function showReviewModal(contractId, serviceId, serviceName, providerName, onCom
 }
 
 /**
- * Genera un avatar SVG con las iniciales del nombre completo
- * @param {string} fullName - Nombre completo del proveedor
- * @param {number} size - Tamaño del avatar en píxeles (por defecto 60)
- * @returns {string} - URL de datos SVG
+ * Generate an SVG avatar with initials from full name
+ * @param {string} fullName - Provider's full name
+ * @param {number} size - Avatar size in pixels (default 60)
+ * @returns {string} - SVG data URL
  */
 function generateInitialsAvatar(fullName, size = 60) {
-    // Obtener las iniciales del nombre
+    // Get initials from the name
     const initials = fullName
         .split(' ')
         .filter(name => name.length > 0)
         .map(name => name.charAt(0).toUpperCase())
-        .slice(0, 2) // Solo las primeras 2 iniciales
+    .slice(0, 2) // Only the first 2 initials
         .join('');
     
-    // Colores de fondo aleatorios pero consistentes basados en el nombre
+    // Random yet consistent background colors based on the name
     const colors = [
         '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
         '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
     ];
     
-    // Generar un color consistente basado en el hash del nombre
+    // Generate a consistent color based on the name hash
     let hash = 0;
     for (let i = 0; i < fullName.length; i++) {
         hash = fullName.charCodeAt(i) + ((hash << 5) - hash);
@@ -1156,7 +1022,7 @@ function generateInitialsAvatar(fullName, size = 60) {
     const colorIndex = Math.abs(hash) % colors.length;
     const backgroundColor = colors[colorIndex];
     
-    // Crear el SVG
+    // Build the SVG
     const svg = `
         <svg width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg">
             <circle cx="${size/2}" cy="${size/2}" r="${size/2}" fill="${backgroundColor}"/>
@@ -1165,46 +1031,46 @@ function generateInitialsAvatar(fullName, size = 60) {
         </svg>
     `;
     
-    // Convertir a URL de datos
+    // Convert to data URL
     return `data:image/svg+xml;base64,${btoa(svg)}`;
 }
 
 /**
- * Configura el manejo de imágenes con avatar inmediato y carga en segundo plano
- * @param {HTMLImageElement} img - Elemento de imagen
- * @param {string} providerName - Nombre del proveedor
- * @param {string} originalSrc - URL original de la imagen
- * @param {number} size - Tamaño del avatar
+ * Configure image handling with instant initials avatar and background loading
+ * @param {HTMLImageElement} img - Image element
+ * @param {string} providerName - Provider name
+ * @param {string} originalSrc - Original image URL
+ * @param {number} size - Avatar size
  */
 function setupImageFallback(img, providerName, originalSrc, size = 60) {
-    // Mostrar inmediatamente el avatar de iniciales
+    // Show initials avatar immediately
     const initialsAvatar = generateInitialsAvatar(providerName, size);
     img.src = initialsAvatar;
     
-    // Intentar cargar la imagen real en segundo plano
+    // Try loading the real image in the background
     if (originalSrc && originalSrc !== 'null' && originalSrc.trim() !== '') {
         const realImage = new Image();
         realImage.onload = function() {
-            // Si la imagen real carga exitosamente, reemplazar el avatar
+            // If real image loads, replace the avatar
             img.src = originalSrc;
         };
         realImage.onerror = function() {
-            // Si falla, mantener el avatar de iniciales (ya está configurado)
+            // On error, keep initials avatar (already set)
             console.log(`Failed to load image for ${providerName}, using initials avatar`);
         };
-        // Iniciar la carga de la imagen real
+    // Start loading the real image
         realImage.src = originalSrc;
     }
 }
 
 // ===================================================================
-// SECCIÓN 2: LÓGICA DE EVENTOS (MANEJADOR ÚNICO)
+// SECTION 2: EVENT LOGIC (SINGLE DELEGATED HANDLER)
 // ===================================================================
 function setupPageEventListeners() {
     document.body.addEventListener('click', async (e) => {
         const target = e.target;
         
-        // --- Buscamos el objetivo del clic usando .closest() para más robustez ---
+    // --- Resolve click target using .closest() for robustness ---
         const categoryCard = target.closest('.category-card');
         const seeMoreBtn = target.closest('.btn-see-more');
         const contactBtn = target.closest('#modal-contact-btn');
@@ -1215,7 +1081,7 @@ function setupPageEventListeners() {
         const deleteContractBtn = target.closest('.btn-delete-contract');
         const completeContractBtn = target.closest('.btn-complete-contract');
 
-        // --- Lógica para cada tipo de clic ---
+    // --- Logic per click target ---
 
         if (categoryCard) {
             const categoryId = categoryCard.dataset.idCategory;
@@ -1223,12 +1089,12 @@ function setupPageEventListeners() {
             const servicesTitle = document.getElementById('h2Services');
             const servicesSection = document.getElementById('servicesSection');
 
-            // Remover clase 'active' de todas las categorías
+            // Remove 'active' class from all categories
             document.querySelectorAll('.category-card').forEach(card => {
                 card.classList.remove('active');
             });
             
-            // Agregar clase 'active' a la categoría seleccionada
+            // Add 'active' class to the selected category
             categoryCard.classList.add('active');
 
             if (servicesTitle) servicesTitle.textContent = `Servicios de ${categoryName}`;
@@ -1237,7 +1103,7 @@ function setupPageEventListeners() {
             try {
                 const services = await getServices({ id_category: categoryId });
                 renderServices(services);
-            } catch (error) { console.error("Error al cargar servicios:", error); }
+            } catch (error) { console.error("Error loading services:", error); }
         }
         else if (favoriteBtn) {
             e.preventDefault();
@@ -1247,14 +1113,14 @@ function setupPageEventListeners() {
         else if (seeMoreBtn) {
             const serviceId = seeMoreBtn.dataset.serviceId;
             
-            // Limpiar datos previos antes de mostrar el nuevo modal
+            // Clear previous data before showing the new modal
             window.currentServiceData = null;
             showServiceDetailModal(serviceId);
         }
         else if (contactBtn) {
             const serviceId = contactBtn.dataset.serviceId;
             
-            // Verificar si es su propio servicio
+            // Check if it's their own service
             const service = window.currentServiceData;
             const isOwnService = myUserId && service && service.id_user && myUserId === service.id_user;
             if (isOwnService) {
@@ -1266,7 +1132,7 @@ function setupPageEventListeners() {
             if (detailModal) detailModal.hide();
             try {
                 const result = await startConversation(serviceId);
-                // Actualizar la sección de mensajes después de iniciar la conversación
+                // Refresh the messages section after starting the conversation
                 await loadAndRenderClientConversations();
                 setTimeout(() => openChatModal(result.id_conversation), 300);
             } catch (error) {
@@ -1289,14 +1155,14 @@ function setupPageEventListeners() {
                 return;
             }
 
-            // Verificar si es su propio servicio
+            // Check if it's their own service
             const isOwnService = myUserId && service.id_user && myUserId === service.id_user;
             if (isOwnService) {
                 showModal('Acción no permitida', 'No puedes contratar tu propio servicio.', 'warning');
                 return;
             }
 
-            // NO ocultar el modal de detalles, simplemente mostrar el prompt encima
+            // DO NOT hide the detail modal; just show the prompt on top
             showPromptModal(
                 'Contratar Servicio',
                 `¿Cuántas horas del servicio "${service.name}" deseas contratar?`,
@@ -1308,14 +1174,14 @@ function setupPageEventListeners() {
                         return;
                     }
 
-                    // Ahora sí ocultar el modal de detalles para mostrar el resumen
+                    // Now hide the detail modal to show the summary
                     const detailModalEl = document.getElementById('serviceDetailModal');
                     const detailModal = bootstrap.Modal.getInstance(detailModalEl);
                     
                     if (detailModal) {
-                        // Esperar a que el modal se oculte completamente antes de mostrar el resumen
+                        // Wait for the modal to fully hide before showing the summary
                         detailModalEl.addEventListener('hidden.bs.modal', function showSummaryAfterHide() {
-                            // Proceder con la confirmación del contrato
+                            // Proceed with contract confirmation
                             const agreed_hours = parseFloat(hours);
                             const total_price = service.hour_price * agreed_hours;
 
@@ -1328,7 +1194,7 @@ function setupPageEventListeners() {
                             confirmBtn.dataset.serviceId = service.id_service;
                             confirmBtn.dataset.agreedHours = agreed_hours;
 
-                            // Crear el modal de resumen con configuración explícita del backdrop
+                            // Create summary modal with explicit backdrop configuration
                             const summaryModal = new bootstrap.Modal(document.getElementById('contractSummaryModal'), {
                                 backdrop: true,
                                 keyboard: true,
@@ -1336,13 +1202,13 @@ function setupPageEventListeners() {
                             });
                             summaryModal.show();
                             
-                            // Remover este listener para evitar múltiples ejecuciones
+                            // Remove this listener to avoid multiple executions
                             detailModalEl.removeEventListener('hidden.bs.modal', showSummaryAfterHide);
                         });
                         
                         detailModal.hide();
                     } else {
-                        // Si no hay modal de detalles, mostrar directamente el resumen
+                        // If no detail modal, show the summary directly
                         const agreed_hours = parseFloat(hours);
                         const total_price = service.hour_price * agreed_hours;
 
@@ -1364,7 +1230,7 @@ function setupPageEventListeners() {
                     }
                 },
                 () => {
-                    // Si se cancela, no hacer nada - el modal de detalles sigue abierto
+                    // If canceled, do nothing - the detail modal remains open
                 }
             );
         }
@@ -1384,7 +1250,7 @@ function setupPageEventListeners() {
                 const providerName = document.getElementById('summary-provider-name').textContent;
                 showModal('¡Éxito!', `${result.message}\nHas propuesto contratar ${agreedHours} horas con ${providerName}.`, 'success');
 
-                // Recargar automáticamente la lista de contratos
+                // Auto reload contracts list
                 loadAndRenderClientContracts();
 
             } catch (error) {
@@ -1403,7 +1269,7 @@ function setupPageEventListeners() {
                     try {
                         await deleteContract(contractId);
                         showModal('¡Éxito!', 'Contrato eliminado de tu vista.', 'success');
-                        loadAndRenderClientContracts(); // Recargamos la lista
+                        loadAndRenderClientContracts(); // Reload list
                     } catch (error) {
                         showModal('Error', `Error al eliminar: ${error.message}`, 'error');
                     }
@@ -1418,14 +1284,14 @@ function setupPageEventListeners() {
             
             
             
-            // Mostrar el modal de review antes de completar el contrato
+            // Show the review modal before completing the contract
             showReviewModal(contractId, serviceId, serviceName, providerName, () => {
-                loadAndRenderClientContracts(); // Recargamos la lista
+                loadAndRenderClientContracts(); // Reload list
             });
         }
     });
 
-    // Agregar limpieza global cuando se presione ESC
+    // Add global cleanup when ESC is pressed
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             setTimeout(cleanupModalBackdrops, 100);
@@ -1441,17 +1307,12 @@ async function loadAndRenderClientContracts() {
     try {
         const allContracts = await getContracts({selected_rol: 'client'});
         
-        // Filtrar contratos: solo mostrar los que NO están completados por ambas partes
+    // Filter contracts: show only those NOT completed by both parties
         const activeContracts = allContracts.filter(contract => {
-            // Ocultar contratos completados por ambas partes (el historial lo carga el modal desde backend)
+            // Hide contracts completed by both (history loads from backend in modal)
             const isCompletedByBoth = contract.client_marked_completed && contract.provider_marked_completed;
             return !isCompletedByBoth;
         });
-        
-        console.log('=== CONTRATOS ACTIVOS ===');
-        console.log('Total de contratos:', allContracts.length);
-        console.log('Contratos activos:', activeContracts.length);
-        console.log('=========================');
         
         if (activeContracts.length === 0) {
             container.innerHTML = '<p class="text-muted">No tienes contratos activos.</p>';
@@ -1462,11 +1323,11 @@ async function loadAndRenderClientContracts() {
             let badge = '';
             let actions = '';
 
-            // Lógica para determinar el estado y los botones (solo contratos activos)
+            // Logic to determine state and actions (active contracts only)
             if (contract.status === 'accepted') {
                 if (contract.client_marked_completed) {
                     badge = `<span class="badge bg-info">Esperando Proveedor</span>`;
-                    actions = ''; // Ya confirmó, no hay más acciones para él
+                    actions = ''; // Already confirmed; no further actions for the client
                 } else {
                     badge = `<span class="badge bg-success">Aceptado</span>`;
                     actions = `<button class="btn btn-sm btn-info btn-complete-contract" 
@@ -1480,13 +1341,13 @@ async function loadAndRenderClientContracts() {
                 actions = `<button class="btn btn-sm btn-outline-danger btn-delete-contract" data-contract-id="${contract.id_contract}">🗑️</button>`;
             } else { // pending
                 badge = `<span class="badge bg-warning">Pendiente</span>`;
-                actions = ''; // No hay acciones mientras esté pendiente
+                actions = ''; // No actions while pending
             }
 
             return { badge, actions };
         };
 
-        container.innerHTML = ''; // Limpiamos el contenedor
+    container.innerHTML = ''; // Clear container
         activeContracts.forEach(contract => {
             const { badge, actions } = getContractDisplay(contract);
             
@@ -1509,12 +1370,12 @@ async function loadAndRenderClientContracts() {
         });
 
     } catch (error) {
-        console.error("Error al cargar contratos del cliente:", error);
+    console.error("Error loading client contracts:", error);
         container.innerHTML = '<p class="text-danger">Error al cargar los contratos.</p>';
     }
 }
 /**
- * Configura el botón de favoritos en el navbar
+ * Set up favorites button in the navbar
  */
 function setupFavoritesButton() {
     const favBtn = document.getElementById('show-favorites-btn');
@@ -1524,24 +1385,24 @@ function setupFavoritesButton() {
 }
 
 /**
- * Configura el modal de perfil del cliente
+ * Set up client's profile modal
  */
 function setupProfileModal() {
     const editProfileBtn = document.getElementById('edit-profile-btn');
     if (editProfileBtn) {
         editProfileBtn.addEventListener('click', async (e) => {
             e.preventDefault();
-            // Eliminar modal anterior si existe
+            // Remove previous modal if exists
             let oldModal = document.getElementById('clientProfileModal');
             if (oldModal) oldModal.remove();
 
-            // Obtener id_client
+            // Get id_client
             if (!myClientId) {
                 showModal('Error', 'No se encontró tu id de cliente.', 'error');
                 return;
             }
 
-            // Obtener datos del cliente
+            // Get client data
             let clientData;
             try {
                 clientData = await getClientById(myClientId);
@@ -1550,7 +1411,7 @@ function setupProfileModal() {
                 return;
             }
 
-            // Crear el modal
+            // Create the modal
             const modalHtml = `
                 <div class="modal fade" id="clientProfileModal" tabindex="-1">
                     <div class="modal-dialog modal-dialog-centered">
@@ -1587,16 +1448,16 @@ function setupProfileModal() {
             const modal = new bootstrap.Modal(document.getElementById('clientProfileModal'));
             modal.show();
 
-            // Manejar el submit del formulario
+            // Handle form submit
             document.getElementById('client-profile-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const form = e.target;
                 const full_name = form.full_name.value.trim();
-                // El email no se puede modificar
+                // Email cannot be modified
                 try {
                     await putClient(myClientId, { full_name });
                     document.getElementById('profile-update-msg').textContent = 'Perfil actualizado con éxito.';
-                    // Cerrar el modal después de 2 segundos
+                    // Close the modal after 2 seconds
                     setTimeout(() => {
                         const modal = bootstrap.Modal.getInstance(document.getElementById('clientProfileModal'));
                         if (modal) modal.hide();
@@ -1606,7 +1467,7 @@ function setupProfileModal() {
                 }
             });
 
-            // Evento para resetear contraseña
+            // Event to trigger password reset
             document.getElementById('btn-reset-password').addEventListener('click', async () => {
                 const email = clientData[0].email;
                 if (!email) {
@@ -1624,29 +1485,23 @@ function setupProfileModal() {
     }
 }
 
-// FUNCIÓN PARA EL BOTÓN DE SCROLL HACIA ARRIBA
+// SCROLL-TO-TOP BUTTON
 function setupScrollToTopButton() {
     const scrollToTopBtn = document.getElementById('scroll-to-top');
     
     if (!scrollToTopBtn) {
-        console.error('Botón scroll-to-top no encontrado');
+        console.error('Scroll-to-top button not found');
         return;
     }
-    
-    console.log('Botón de scroll configurado correctamente');
-    
-    // Función simple y directa para scroll
-    scrollToTopBtn.onclick = function() {
-        console.log('¡Click detectado! Iniciando scroll...');
         
-        // Scroll inmediato para test
-        document.body.scrollTop = 0; // Para Safari
-        document.documentElement.scrollTop = 0; // Para Chrome, Firefox, IE y Opera
-        
-        console.log('Scroll ejecutado');
+    // Simple immediate scroll behavior
+    scrollToTopBtn.onclick = function() {        
+    // Immediate scroll for quick response
+    document.body.scrollTop = 0; // For Safari
+    document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
     };
-    
-    // Mostrar/ocultar el botón basado en la posición del scroll
+
+    // Show/hide button based on scroll position
     window.onscroll = function() {
         if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
             scrollToTopBtn.style.opacity = '1';

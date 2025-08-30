@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const sendEmail = require('../utils/sendEmail.js');
 const bcrypt = require("bcryptjs");
 
-// RUTA 1: SOLICITAR EL RESETEO
+// ROUTE 1: REQUEST PASSWORD RESET
 router.post('/forgot', async (req, res) => {
     try {
         const { email } = req.body;
@@ -19,7 +19,7 @@ router.post('/forgot', async (req, res) => {
         const resetToken = crypto.randomBytes(20).toString('hex');
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-        // Usamos UTC para la fecha de expiración
+    // Use UTC for the expiration date
         const expirationDate = new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 19).replace('T', ' ');
 
         await pool.query('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id_user = ?', [hashedToken, expirationDate, user.id_user]);
@@ -42,7 +42,7 @@ router.post('/forgot', async (req, res) => {
 });
 
 
-//RUTA 2: REALIZAR EL RESETEO 
+// ROUTE 2: PERFORM PASSWORD RESET 
 router.post('/reset/:token', async (req, res) => {
     try {
         const { password } = req.body;
@@ -53,10 +53,10 @@ router.post('/reset/:token', async (req, res) => {
         const resetToken = req.params.token;
         const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');
 
-        // Vamos a traer la hora actual en UTC también.
+    // Use current time in UTC as well.
         const nowUTC = new Date().toISOString().slice(0, 19).replace('T', ' ');
 
-        // Buscamos un token válido comparando contra la fecha UTC que generamos
+    // Look up a valid token comparing against the generated UTC date
         const [users] = await pool.query(
             'SELECT * FROM users WHERE reset_token = ? AND reset_token_expires > ?', 
             [hashedToken, nowUTC]
@@ -78,7 +78,7 @@ router.post('/reset/:token', async (req, res) => {
         res.json({ message: 'Contraseña actualizada con éxito. Ya puedes iniciar sesión.' });
 
     } catch (error) {
-        console.error("Error al restablecer la contraseña:", error);
+    console.error("Error resetting password:", error);
         res.status(500).json({ error: 'Ocurrió un error al restablecer la contraseña.' });
     }
 });

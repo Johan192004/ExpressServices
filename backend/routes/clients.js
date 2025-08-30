@@ -11,7 +11,7 @@ router.get('/:id', async (req, res) => {
 
         res.status(200).json(result);
     } catch (error) {
-        res.status(500).json({ error: 'Error al obtener los clientes', details: error.message });
+    res.status(500).json({ error: 'Error al obtener los clientes', details: error.message });
     }
 });
 

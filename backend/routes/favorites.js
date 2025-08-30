@@ -28,13 +28,13 @@ router.post('/', async (req, res) => {
             return res.status(400).json({ error: 'Faltan datos requeridos' });
         }
 
-        // Verificar si el servicio ya está en favoritos
+    // Check if the service is already in favorites
         let [existing] = await pool.query(`SELECT * FROM favorites WHERE id_client=? AND id_service=?`, [id_client, id_service]);
         if (existing.length > 0) {
             return res.status(409).json({ error: 'El servicio ya está en favoritos' });
         }
 
-        // Agregar a favoritos
+    // Add to favorites
         await pool.query(`INSERT INTO favorites (id_client, id_service) VALUES (?, ?)`, [id_client, id_service]);
         res.status(201).json({ message: 'Servicio agregado a favoritos' });
     } catch (error) {
@@ -49,13 +49,13 @@ router.delete('/:id_client/:id_service', async (req, res) => {
             return res.status(400).json({ error: 'Faltan datos requeridos' });
         }
 
-        // Verificar si el servicio está en favoritos
+    // Check if the service is in favorites
         let [existing] = await pool.query(`SELECT * FROM favorites WHERE id_client=? AND id_service=?`, [id_client, id_service]);
         if (existing.length === 0) {
             return res.status(404).json({ error: 'El servicio no está en favoritos' });
         }
 
-        // Eliminar de favoritos
+    // Remove from favorites
         await pool.query(`DELETE FROM favorites WHERE id_client=? AND id_service=?`, [id_client, id_service]);
         res.status(200).json({ message: 'Servicio eliminado de favoritos' });
     } catch (error) {

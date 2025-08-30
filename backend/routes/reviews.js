@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require("../models/db.js");
 
-//get general de reviews por id de servicio
+// Get general reviews by service ID
 router.get('/:id_service', async (req, res) => {
     try {
         const { id_service } = req.params;
@@ -23,12 +23,12 @@ router.post('/', async (req, res) => {
     try {
         const { id_service, id_client, stars, description } = req.body;
         
-        // Validar que se reciban todos los campos necesarios
+    // Validate required fields
         if (!id_service || !id_client || stars === undefined || !description) {
             return res.status(400).json({ error: 'Faltan datos requeridos' });
         }
 
-        // Insertar la nueva reseña en la base de datos
+    // Insert the new review into the database
         const [result] = await pool.query(`INSERT INTO reviews (id_service, id_client, stars, description) VALUES (?, ?, ?, ?)`,
             [id_service, id_client, stars, description]);
 
