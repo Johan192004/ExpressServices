@@ -1,5 +1,21 @@
 import { API_URL } from './api/config.js';
 
+// Decode a JWT payload safely (handles base64url and padding)
+function decodeJwt(token) {
+    try {
+        const base64Url = token.split('.')[1];
+        if (!base64Url) return null;
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4);
+        const jsonPayload = decodeURIComponent(atob(padded).split('').map(c => {
+            return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+        return JSON.parse(jsonPayload);
+    } catch (_) {
+        return null;
+    }
+}
+
 function updateNavbar() {
     const token = localStorage.getItem('token');
     const guestButtons = document.getElementById('guest-buttons');
@@ -12,8 +28,8 @@ function updateNavbar() {
         guestButtons.classList.add('d-none');
         userButtons.classList.remove('d-none');
         
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userRoles = payload.user.roles || [];
+        const payload = decodeJwt(token) || {};
+        const userRoles = payload?.user?.roles || [];
 
         const isProviderView = window.location.pathname.includes('/views/private/provider.html');
 
@@ -129,11 +145,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // If user is logged in and on the home page, redirect to their view
     try {
         const token = localStorage.getItem('token');
-        const path = window.location.pathname || '';
-        const isHome = path === '/' || path.endsWith('/index.html');
+    const path = window.location.pathname || '';
+    const isHome = path === '/' || path.endsWith('/index.html') || path.endsWith('/');
         if (token && isHome) {
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const roles = payload?.user?.roles || [];
+        const payload = decodeJwt(token) || {};
+        const roles = payload?.user?.roles || [];
             if (roles.includes('client')) {
                 window.location.href = '/frontend/views/private/client.html';
             } else if (roles.includes('provider')) {
