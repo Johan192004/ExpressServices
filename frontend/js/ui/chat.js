@@ -158,7 +158,7 @@ function startChatPolling(conversationId) {
         } catch (error) {
             console.error('Error al verificar nuevos mensajes:', error);
         }
-    }, 5000); // Cada 5 segundos
+    }, 1000); // Cada 1 segundos
 }
 
 // Función para detener el polling
