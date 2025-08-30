@@ -24,7 +24,7 @@ router.post('/forgot', async (req, res) => {
 
         await pool.query('UPDATE users SET reset_token = ?, reset_token_expires = ? WHERE id_user = ?', [hashedToken, expirationDate, user.id_user]);
 
-        const resetUrl = `${process.env.FRONTEND_URL}/reset-password.html?token=${resetToken}`;
+        const resetUrl = `${process.env.FRONTEND_URL}/frontend/reset-password.html?token=${resetToken}`;
         const message = `<p>Has solicitado restablecer tu contraseña. Por favor, haz clic en el siguiente enlace (válido por 10 minutos): <a href="${resetUrl}">Restablecer Contraseña</a></p>`;
 
         await sendEmail({
