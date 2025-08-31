@@ -34,7 +34,7 @@ Design choices that matter
 	- Multi-role per user: client and provider.
 	- Route protection middleware (`protect`).
 - Services, categories, and filters
-	- Filterable list by category, experience years, and hourly price.
+	- Filterable list by category.
 	- Service soft delete (`is_hidden`): hidden from public/client listings.
 - Contracts workflow
 	- Client sends an offer (agreed hours); provider accepts or denies.
