@@ -1,7 +1,5 @@
 # ExpressServices
 
-
-
 ## Live site
 
 The application is deployed at: [https://expressservices.onrender.com/](https://expressservices.onrender.com/)
@@ -72,7 +70,7 @@ backend/
 	middleware/
 		authMiddleware.js       # protect (JWT)
 	models/
-		db.js                   # MySQL pool (you may move to config/ if preferred)
+		db.js                   # MySQL pool
 	routes/
 		categories.js
 		clients.js
@@ -165,17 +163,13 @@ EMAIL_PASS=your_password_or_app_password
 FRONTEND_URL=http://localhost:3000
 ```
 
-4) Database
-- Use `backend/routes/code.sql` as a schema reference.
-- Create the database and tables as needed (adjust names if they differ).
-
-5) Run the server
+4) Run the server
 
 ```bash
 npm start
 ```
 
-By default the API is exposed on `http://localhost:3000`.
+By default the API is exposed on `http://localhost:3030`.
 
 
 ## Main endpoints (summary)
