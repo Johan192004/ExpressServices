@@ -1,0 +1,591 @@
+/* estilos para botones modo celulares */
+@keyframes slideInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 991.98px) {
+    /* Mantenemos la estructura base del menú */
+    #navbarNav {
+        width: 100%;
+        padding: 1rem 0; /* Añadimos algo de espacio vertical */
+    }
+    .navbar-nav {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 1rem;
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+    #guest-buttons,
+    #user-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        width: 100%;
+        margin: 1rem 0;
+    }
+
+    /* 2. Estilo base y animación para TODOS los botones personalizados */
+    #contract-history-btn,
+    #show-favorites-btn,
+    #switch-mode-btn,
+    #profile-dropdown {
+        width: 100%;
+        margin: 0;
+        padding: 0.9rem 1rem;
+        border: none;
+        font-weight: 600;
+        border-radius: 12px; /* Bordes más suaves */
+        font-size: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        color: white; /* Color de texto por defecto */
+        
+        /* Efecto de gradiente animado */
+        background-size: 200% auto;
+        
+        /* Animación de entrada */
+        opacity: 0; /* Empieza invisible */
+        animation: slideInUp 0.5s cubic-bezier(.25,.8,.25,1) forwards;
+
+        /* Transición suave para todos los efectos */
+        transition: transform 0.3s cubic-bezier(.25,.8,.25,1),
+                    box-shadow 0.3s cubic-bezier(.25,.8,.25,1),
+                    background-position 0.4s ease;
+    }
+
+    /* 3. Aplicamos el retraso escalonado a cada botón */
+    #contract-history-btn { animation-delay: 0.1s; }
+    #show-favorites-btn { animation-delay: 0.2s; }
+    #switch-mode-btn { animation-delay: 0.3s; }
+    #profile-dropdown { animation-delay: 0.4s; }
+
+    /* 4. Efecto Hover y Active mejorado para todos los botones */
+    #contract-history-btn:hover,
+    #show-favorites-btn:hover,
+    #switch-mode-btn:hover,
+    #profile-dropdown:hover {
+        transform: translateY(-5px) scale(1.02); /* Efecto flotante */
+        background-position: right center; /* Mueve el gradiente */
+        cursor: pointer;
+    }
+
+    #contract-history-btn:active,
+    #show-favorites-btn:active,
+    #switch-mode-btn:active,
+    #profile-dropdown:active {
+        transform: translateY(-2px) scale(0.98); /* Click más sutil */
+    }
+
+    /* 5. Micro-interacción para los iconos internos */
+    #contract-history-btn:hover .bi,
+    #show-favorites-btn:hover .bi,
+    #switch-mode-btn:hover .bi,
+    #profile-dropdown:hover .bi {
+        transform: scale(1.1) rotate(-5deg);
+        transition: transform 0.3s cubic-bezier(.25,.8,.25,1);
+    }
+    
+    /* --- Estilos específicos de cada botón (tus colores) --- */
+    
+    #contract-history-btn {
+        background-image: linear-gradient(45deg, #0052D4, #4364F7, #0052D4);
+        box-shadow: 0 4px 20px rgba(0, 82, 212, 0.25);
+    }
+    #contract-history-btn:hover {
+        box-shadow: 0 7px 25px rgba(0, 82, 212, 0.35);
+    }
+
+    #show-favorites-btn {
+        background-image: linear-gradient(45deg, #FFD600, #FFB300, #FFD600);
+        color: #222;
+        box-shadow: 0 4px 20px rgba(255, 214, 0, 0.25);
+    }
+    #show-favorites-btn:hover {
+        box-shadow: 0 7px 25px rgba(255, 214, 0, 0.35);
+    }
+
+    #switch-mode-btn {
+        background-image: linear-gradient(45deg, #eef4ff, #ffffff, #eef4ff);
+        color: #0052D4;
+        box-shadow: 0 4px 20px rgba(0, 82, 212, 0.10);
+        border: 2px solid #0052D4;
+    }
+    #switch-mode-btn:hover {
+        box-shadow: 0 7px 25px rgba(0, 82, 212, 0.20);
+        color: #003a99;
+    }
+
+    #profile-dropdown {
+        background-image: linear-gradient(45deg, #FF6B00, #FF8C42, #FF6B00);
+        box-shadow: 0 4px 20px rgba(255, 107, 0, 0.25);
+    }
+    #profile-dropdown:hover {
+        box-shadow: 0 7px 25px rgba(255, 107, 0, 0.35);
+    }
+    
+    /* --- Estilos para los botones de Invitado --- */
+    #guest-buttons .btn {
+        padding: 0.8rem;
+        font-weight: 600;
+        border-radius: 12px;
+        transform: scale(1);
+        transition: transform 0.3s ease;
+    }
+    #guest-buttons .btn:hover {
+        transform: translateY(-3px);
+    }
+    #guest-buttons .btn:active {
+        transform: translateY(0) scale(0.98);
+    }
+    #guest-buttons .btn-glow {
+        background-image: linear-gradient(45deg, #FF6B00, #FF8C42);
+        box-shadow: 0 4px 15px rgba(255, 107, 0, 0.3);
+    }
+    #guest-buttons .btn-glow:hover {
+        box-shadow: 0 6px 20px rgba(255, 107, 0, 0.4);
+    }
+}
+
+/* ======== GENERAL STYLES & FONTS ======== */
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden; 
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    padding-top: 70px; 
+}
+
+/* ======== COLOR PALETTE ======== */
+:root {
+    --primary-color: #0052D4;
+    --secondary-color: #FF6B00;
+    --light-gray: #f8f9fa;
+    --dark-gray: #343a40;
+}
+
+.btn-primary {
+    background: linear-gradient(45deg, var(--secondary-color), #FF8C42);
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.text-primary { color: var(--primary-color) !important; }
+
+/* ======== BUTTON GLOW ANIMATION ======== */
+.btn-glow {
+    box-shadow: 0 0 5px var(--secondary-color), 0 0 10px var(--secondary-color);
+}
+.btn-glow:hover, .btn-glow:focus {
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 0 15px var(--secondary-color), 0 0 30px var(--secondary-color);
+}
+.btn-glow-light {
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    transition: all 0.3s ease;
+}
+.btn-glow-light:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.8);
+}
+
+
+/* ======== NAVBAR ======== */
+.navbar-brand {
+    font-size: 1.5rem;
+}
+.navbar .nav-link {
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+.navbar .nav-link:hover {
+    color: var(--primary-color);
+}
+
+/* Custom favorites button */
+.btn-favorites {
+    background: linear-gradient(45deg, #FFD700, #FFA500);
+    color: #fff;
+    border: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0;
+    vertical-align: middle;
+}
+
+.btn-favorites:hover {
+    background: linear-gradient(45deg, #FFA500, #FF8C00);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(255, 165, 0, 0.5);
+}
+
+
+/* ======== HERO SECTION ======== */
+.hero-section {
+    background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=2069&auto=format&fit=crop') no-repeat center center;
+    background-size: cover;
+    padding: 120px 0;
+    position: relative;
+}
+
+/* ======== CATEGORIES SECTION ======== */
+.category-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+}
+.category-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+}
+.category-card .icon-wrapper {
+    width: 70px;
+    height: 70px;
+    margin: 0 auto 15px;
+    background: linear-gradient(45deg, var(--primary-color), #4364F7);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+}
+.category-card p {
+    font-weight: 600;
+    margin-bottom: 0;
+}
+
+/* Styles for active/selected category */
+.category-card.active {
+    background: linear-gradient(45deg, #0d6efd, #4364F7) !important;
+    color: white !important;
+    transform: translateY(-5px) !important;
+    box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3) !important;
+    border-color: #0d6efd !important;
+}
+
+.category-card.active .icon-wrapper {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+.category-card.active p {
+    color: white !important;
+    font-weight: 700 !important;
+}
+
+
+/* ======== FEATURED SERVICES CARD ======== */
+.service-card {
+    border: none;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+.service-card:hover {
+    transform: translateY(-5px);
+}
+.service-card .card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+.service-card .provider-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
+    display: block;
+    margin: 15px auto 0;
+}
+
+/* General style for provider-avatar in any context */
+.provider-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    object-fit: cover;
+    display: block;
+    margin: 0 auto;
+}
+.service-card .card-title {
+    color: var(--primary-color);
+}
+.service-card .card-price {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--dark-gray);
+}
+.service-card .card-price span {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: #6c757d;
+}
+
+/* Carousel controls */
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    background-color: var(--primary-color);
+    border-radius: 50%;
+    padding: 20px;
+}
+
+/* ======== CTA SECTION ======== */
+.cta-section {
+    background: linear-gradient(45deg, var(--primary-color), #4364F7);
+}
+
+
+/* Improved hover effect for the modal primary button */
+.modal-body .btn-primary:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    transition: all 0.2s ease;
+}
+
+.btn-provider {
+    background-color: #fff; /* White background */
+    color: var(--secondary-color); /* Orange text */
+    border: 2px solid var(--secondary-color); /* Orange border */
+    font-weight: 600;
+    transition: all 0.3s ease; /* Smooth transition */
+}
+
+/* Hover state */
+.btn-provider:hover {
+    background: linear-gradient(45deg, var(--secondary-color), #FF8C42); /* Fondo degradado naranja */
+    color: #fff; /* Texto blanco */
+    border-color: var(--secondary-color); /* Mantenemos el borde */
+    transform: translateY(-3px); /* Pequeño efecto de elevación */
+    box-shadow: 0 5px 15px rgba(255, 107, 0, 0.4); /* Sombra naranja suave */
+}
+
+.btn-outline-primary {
+    border-width: 2px; /* Slightly thicker border */
+    font-weight: 600;
+    transition: all 0.3s ease; /* Smooth transition */
+}
+
+/* Hover state */
+.btn-outline-primary:hover {
+    background: linear-gradient(45deg, var(--primary-color), #4364F7); /* Fondo degradado azul */
+    color: #fff; /* Texto blanco */
+    transform: translateY(-3px); /* Pequeño efecto de elevación */
+    box-shadow: 0 5px 15px rgba(0, 82, 212, 0.4); /* Sombra azul suave */
+}
+
+/* General container for user buttons */
+#user-buttons {
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+@media (max-width: 991.98px) {
+    #user-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.7rem;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    #user-buttons > * {
+        width: 100%;
+        min-width: 0;
+        margin-right: 0 !important;
+        margin-left: 0 !important;
+    }
+    #profile-link, #profile-dropdown {
+        width: 100%;
+        text-align: left;
+    }
+    #switch-mode-btn {
+        width: 100%;
+    }
+}
+
+/* Adjustment for profile on mobile */
+#profile-link {
+    padding: 0.5rem 0.8rem;
+    border-radius: 8px;
+    transition: all 0.2s ease-in-out;
+    color: var(--dark-gray);
+    word-break: break-word;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#profile-link:hover {
+    background-color: #e9ecef; 
+    color: var(--primary-color);
+}
+
+/* ======== PROFILE DROPDOWN ======== */
+/* Fix for profile dropdown - remove rounded borders */
+#profile-dropdown + .dropdown-menu {
+    border-radius: 8px !important;
+    border: 1px solid #dee2e6 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    padding: 8px 0 !important;
+}
+
+#profile-dropdown + .dropdown-menu .dropdown-item {
+    border-radius: 0 !important;
+    padding: 8px 16px !important;
+    margin: 0 !important;
+    border: none !important;
+}
+
+#profile-dropdown + .dropdown-menu .dropdown-divider {
+    margin: 4px 0 !important;
+}
+
+
+#switch-mode-btn:hover {
+    background: linear-gradient(45deg, var(--primary-color), #4364F7);
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(0, 82, 212, 0.3);
+}
+
+/* Style removed for #logout-btn as it is now a dropdown-item */
+
+/* ======== STYLES FOR THE CHAT MODAL ======== */
+.chat-bubble {
+    padding: 8px 12px;
+    border-radius: 18px;
+    margin-bottom: 10px;
+    max-width: 75%;
+    display: flex;
+    flex-direction: column;
+}
+
+.chat-bubble.sent {
+    background-color: var(--primary-color);
+    color: white;
+    align-self: flex-end; /* Align to the right */
+    align-items: flex-end;
+}
+
+.chat-bubble.received {
+    background-color: #e9ecef; /* Soft gray */
+    color: var(--dark-gray);
+    align-self: flex-start; /* Align to the left */
+    align-items: flex-start;
+}
+
+.chat-bubble .message-content {
+    margin-bottom: 2px;
+}
+
+.chat-bubble .message-time {
+    font-size: 0.7rem;
+    opacity: 0.8;
+}
+
+
+#authActionModal .modal-content {
+    border-radius: 15px; /* More rounded corners */
+}
+
+#authActionModal .auth-arrow-icon {
+    font-size: 4rem; /* Large icon */
+    color: var(--primary-color);
+    animation: point-to-corner 2s infinite ease-in-out;
+}
+
+/* Animation to subtly point the arrow to the top-right corner */
+@keyframes point-to-corner {
+    0% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+    }
+    50% {
+        transform: translate(5px, -5px) scale(1.1);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(0, 0) scale(1);
+        opacity: 0.8;
+    }
+}
+
+/* ======== FOOTER ======== */
+.footer-section {
+    background-color: var(--dark-gray); /* Ensure a consistent background color */
+}
+
+.footer-link, .footer-icon {
+    transition: all 0.3s ease;
+}
+
+.footer-link:hover {
+    color: #fff !important; /* !important is to override Bootstrap */
+    padding-left: 5px;
+}
+
+.footer-icon:hover {
+    color: var(--primary-color) !important;
+    transform: scale(1.2);
+}
+
+#chat-messages-container {
+    max-width: 100%;
+    padding-right: 2px;
+}
+.chat-bubble {
+    max-width: 80%;
+    word-break: break-word;
+    white-space: pre-line;
+    margin-bottom: 8px;
+    padding: 8px 14px;
+    border-radius: 18px;
+    font-size: 1rem;
+    background: #f5f5f5;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.07);
+    align-self: flex-start;
+}
+.chat-bubble.sent {
+    background: linear-gradient(90deg,#e0c3fc,#8ec5fc);
+    color: #222;
+    align-self: flex-end;
+}
+.chat-bubble.received {
+    background: #fffbe6;
+    color: #222;
+}
+.message-content {
+    word-break: break-word;
+    white-space: pre-line;
+}

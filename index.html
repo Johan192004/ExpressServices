@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Express Services - Conectando Profesionales y Clientes</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <link rel="stylesheet" href="frontend/css/styles.css">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="/index.html">
+                <i class="bi bi-lightning-charge-fill"></i>
+                Express Services
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <button class="btn btn-warning btn-glow fw-bold px-3 py-1" id="aboutUsHeaderBtn" style="background: linear-gradient(90deg,#ffb347,#ffcc80); color: #6c3a00; border: none; border-radius: 20px; box-shadow: 0 2px 8px rgba(255,179,71,0.18); font-size: 1rem;">Nosotros</button>
+                </li>
+                </ul>
+                <div id="guest-buttons" class="d-flex ms-lg-3">
+                    <button class="btn btn-outline-primary me-2" data-bs-toggle="modal" data-bs-target="#loginModal">Ingresar</button>
+                    <button class="btn btn-primary btn-glow" data-bs-toggle="modal" data-bs-target="#registerModal">Registrarse</button>
+                </div>
+                <div id="user-buttons" class="d-none d-flex align-items-center ms-lg-3">
+                    <a href="#" class="btn btn-outline-primary me-3 d-none" id="switch-mode-btn"></a>
+                    <a href="#" class="nav-link fw-bold me-3 d-flex align-items-center" id="profile-link">
+                        <i class="bi bi-person-circle me-1"></i> Mi Perfil
+                    </a>
+                    <button class="btn btn-danger btn-sm" id="logout-btn">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero-section">
+        <div class="container text-center">
+            <h1 class="display-4 fw-bold text-white mb-4">Encuentra el servicio que necesitas, al instante.</h1>
+            <p class="lead text-white-50 mb-5">Conectamos tus necesidades con los mejores profesionales locales.</p>
+            <button class="btn btn-outline-light btn-sm mb-3" id="aboutUsShowMoreBtn">Ver más</button>
+            <div id="aboutUsSection" class="container bg-white rounded shadow-sm p-4 mt-3 d-none" style="max-width: 700px;">
+                <h3 class="fw-bold text-primary mb-3">Acerca de Nosotros</h3>
+                <p class="text-dark">
+                    Express Services nació con la misión de conectar el talento de profesionales locales con las necesidades de los clientes, de una forma rápida, segura y eficiente. Nuestra plataforma permite a los usuarios encontrar y contratar servicios confiables en su ciudad, mientras que los proveedores pueden aumentar su visibilidad y oportunidades laborales. Creemos en el poder de la comunidad y la tecnología para mejorar la vida de las personas.
+                </p>
+                <p class="text-dark">
+                    Valoramos la confianza, la transparencia y la calidad en cada interacción. Nuestro equipo trabaja constantemente para ofrecer una experiencia sencilla, moderna y segura para todos nuestros usuarios.
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <section class="py-5">
+        <div class="container text-center">
+            <h2 class="fw-bold mb-5">Explora por Categorías</h2>
+            <div id="category-container" class="row g-4 justify-content-center">
+                </div>
+        </div>
+    </section>
+
+    <section id="services-display-section" class="py-5 bg-light">
+        <div class="container">
+            <h2 id="services-title" class="fw-bold text-center mb-5">Servicios Destacados</h2>
+            <div id="services-container" class="row">
+                </div>
+        </div>
+    </section>
+
+    <div class="modal fade" id="loginModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title fw-bold">Iniciar Sesión</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <form id="loginForm">
+              <div class="mb-3"><label class="form-label">Correo electrónico</label><input type="email" class="form-control" name="email" required></div>
+              <div class="mb-3"><label class="form-label">Contraseña</label><input type="password" class="form-control" name="password" required></div>
+              <div class="text-end mb-3"><a href="#" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">¿Olvidaste tu contraseña?</a></div>
+              <button type="submit" class="btn btn-primary w-100 btn-glow">Ingresar</button>
+            </form>
+                            <div class="mb-3 text-center">
+                                <div id="googleSignInBtn"></div>
+                            </div>
+            <div id="loginResult" class="mt-3 text-center"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="registerModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title fw-bold">Crear una Cuenta</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body py-4">
+            <div id="role-selector" class="text-center">
+                <p class="lead">Para comenzar, dinos qué quieres hacer en Express Services:</p>
+                <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                    <button id="showClientFormBtn" class="btn btn-outline-primary btn-lg px-4">Quiero Contratar</button>
+                    <button id="showProviderFormBtn" class="btn btn-provider btn-lg mx-2">Quiero Ofrecer Servicios</button>
+                </div>
+            </div>
+            <div id="client-form-container" class="d-none mt-4">
+                <h4 class="text-center mb-4">Registro de Cliente</h4>
+                <form id="clientForm">
+                    <input type="text" name="full_name" class="form-control mb-2" placeholder="Nombre completo" required>
+                    <input type="email" name="email" id="client-email" class="form-control mb-2" placeholder="Correo electrónico" required>
+                    <div id="client-form-message" class="form-text mb-2"></div>
+                    <input type="password" name="password" id="client-password" class="form-control mb-3" placeholder="Contraseña (mín. 8 caracteres)" required>
+                    <button type="submit" class="btn btn-primary w-100">Crear Cuenta de Cliente</button>
+                </form>
+            </div>
+            <div id="provider-form-container" class="d-none mt-4">
+                <h4 class="text-center mb-4">Registro de Proveedor</h4>
+                <form id="providerForm">
+                    <input type="text" name="full_name" class="form-control mb-2" placeholder="Nombre completo" required>
+                    <input type="email" name="email" id="provider-email" class="form-control mb-2" placeholder="Correo electrónico" required>
+                    <div id="provider-form-message" class="form-text mb-2"></div>
+                    <input type="password" name="password" id="provider-password" class="form-control mb-2" placeholder="Contraseña (mín. 8 caracteres)" required>
+                    <input type="text" name="phone_number" class="form-control mb-2" placeholder="Número de WhatsApp (10 dígitos)" required>
+                    <input type="url" name="personal_picture" class="form-control mb-2" placeholder="URL de tu foto de perfil" required>
+                    <select name="city" id="provider-city-select" class="form-select mb-2" required><option value="" disabled selected>Selecciona tu ciudad...</option></select>
+                    <textarea name="bio" class="form-control mb-3" placeholder="Cuéntanos un poco sobre ti y tus servicios..."></textarea>
+                    <button type="submit" class="btn btn-primary w-100">Crear Cuenta de Proveedor</button>
+                </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="forgotPasswordModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header"><h5 class="modal-title fw-bold">Restablecer Contraseña</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+          <div class="modal-body">
+            <form id="forgotPasswordForm">
+              <p class="text-muted small">Ingresa tu correo y te enviaremos un enlace.</p>
+              <div class="mb-3"><label class="form-label">Correo electrónico</label><input type="email" class="form-control" name="email" required></div>
+              <button type="submit" class="btn btn-primary w-100">Enviar Enlace</button>
+            </form>
+            <div id="forgotPasswordResult" class="mt-3 text-center"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade" id="serviceDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title fw-bold" id="detail-modal-title">Detalles del Servicio</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body" id="detail-modal-body">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Cargando...</span>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+    </div>
+
+    <div class="modal fade" id="authActionModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content text-center shadow-lg border-0">
+            <div class="modal-body p-4">
+                
+                <div class="auth-arrow-icon mb-3">
+                    <i class="bi bi-arrow-up-right-circle-fill"></i>
+                </div>
+
+                <h4 class="fw-bold">¡Un paso más!</h4>
+                <p class="text-muted small mb-4">Para conectar con un proveedor, necesitas una cuenta en Express Services.</p>
+                
+                <div class="d-grid gap-2">
+                    <button class="btn btn-primary btn-lg btn-glow" id="auth-modal-login-btn">Iniciar Sesión</button>
+                    <button class="btn btn-outline-secondary" id="auth-modal-register-btn">Crear una Cuenta</button>
+                </div>
+                
+            </div>
+            </div>
+        </div>
+        </div>
+
+        <footer class="footer-section bg-dark text-white pt-5 pb-4">
+        <div class="container">
+            <div class="row">
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h5 class="text-uppercase fw-bold mb-4">
+                        <i class="bi bi-lightning-charge-fill"></i> Express Services
+                    </h5>
+                    <p class="text-white-50">
+                        Nuestra misión es conectar el talento de profesionales locales con las necesidades de los clientes, de una forma rápida, segura y eficiente.
+                    </p>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h5 class="text-uppercase fw-bold mb-4">¿Eres Proveedor?</h5>
+                    <p class="text-white-50 small">Únete a nuestra creciente comunidad de profesionales y aumenta tu visibilidad.</p>
+                    <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#registerModal">
+                        Publica tus Servicios <i class="bi bi-arrow-right-short"></i>
+                    </button>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h5 class="text-uppercase fw-bold mb-4">Síguenos</h5>
+                    <a href="#" class="text-white me-3 fs-4 footer-icon"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="text-white me-3 fs-4 footer-icon"><i class="bi bi-instagram"></i></a>
+                    <a href="#" class="text-white fs-4 footer-icon"><i class="bi bi-linkedin"></i></a>
+                </div>
+
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <h5 class="text-uppercase fw-bold mb-4">Términos y Condiciones</h5>
+                    <p class="text-white-50 small">Conoce las reglas de uso del sitio, responsabilidades y tus derechos como usuario.</p>
+                    <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#termsModal">
+                        Leer Términos y Condiciones <i class="bi bi-file-earmark-text"></i>
+                    </button>
+                </div>
+
+            </div>
+            <hr class="my-4">
+            <div class="text-center text-white-50">
+                <p>&copy; 2025 Express Services. Todos los derechos reservados.</p>
+            </div>
+        </div>
+
+        <div class="modal fade" id="pqrsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Formulario de Soporte (PQRS)</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted small">Usa este formulario para enviarnos tus peticiones, quejas, reclamos o sugerencias.</p>
+                    <form id="pqrsForm">
+                        <div class="mb-3">
+                            <label for="pqrs-email" class="form-label">Tu correo electrónico</label>
+                            <input type="email" class="form-control" id="pqrs-email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pqrs-type" class="form-label">Tipo de solicitud</label>
+                            <select class="form-select" id="pqrs-type" name="type" required>
+                                <option value="" disabled selected>Selecciona una opción...</option>
+                                <option value="peticion">Petición</option>
+                                <option value="queja">Queja</option>
+                                <option value="reclamo">Reclamo</option>
+                                <option value="sugerencia">Sugerencia</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="pqrs-message" class="form-label">Mensaje</label>
+                            <textarea class="form-control" id="pqrs-message" name="message" rows="4" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100 btn-glow">Enviar Solicitud</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal: Términos y Condiciones -->
+    <div class="modal fade" id="termsModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content text-dark">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Términos y Condiciones de Express Services</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="max-height: 65vh; overflow-y: auto;">
+                    <p class="text-muted small mb-2">Última actualización: 29 de agosto de 2025</p>
+                    <p>Bienvenido a Express Services. Al utilizar nuestra plataforma, usted acepta los siguientes términos y condiciones que regulan la relación entre clientes y proveedores de servicios dentro de Express Services.</p>
+
+                    <h6 class="fw-bold mt-3">1. Objeto de la Plataforma</h6>
+                    <p>Express Services es una plataforma digital que conecta a clientes que requieren servicios con proveedores que los ofrecen. La plataforma facilita la comunicación, contratación y pago de dichos servicios.</p>
+
+                    <h6 class="fw-bold mt-3">2. Garantías para el Cliente</h6>
+                    <p>Express Services ofrece una garantía de satisfacción al cliente. Si el servicio recibido es de mala calidad o no fue cumplido según lo acordado, el cliente podrá solicitar un reembolso parcial o total del pago realizado. Para aplicar esta garantía, el cliente deberá presentar la reclamación dentro de los [X] días posteriores a la finalización del servicio, aportando la evidencia correspondiente. Express Services evaluará cada caso y determinará si corresponde un reembolso.</p>
+
+                    <h6 class="fw-bold mt-3">3. Garantías para el Proveedor</h6>
+                    <p>Express Services garantiza al proveedor el pago por los servicios prestados, siempre que el servicio haya sido cumplido de forma satisfactoria. Una vez confirmado el cumplimiento del servicio, el pago será liberado al proveedor en los plazos establecidos por la plataforma. En caso de disputa con el cliente, Express Services retendrá el pago hasta que la situación sea resuelta.</p>
+
+                    <h6 class="fw-bold mt-3">4. Pagos y Reembolsos</h6>
+                    <p>Todos los pagos se realizan de forma segura a través de la plataforma Express Services. Los reembolsos al cliente se procesarán únicamente a través de los mismos medios de pago utilizados en la transacción original. Express Services se reserva el derecho de retener temporalmente los fondos en caso de investigaciones por disputas.</p>
+
+                    <h6 class="fw-bold mt-3">5. Responsabilidades</h6>
+                    <p>El proveedor es responsable de cumplir con el servicio ofrecido en los términos acordados. El cliente es responsable de realizar el pago correspondiente y de proporcionar información veraz y suficiente para la correcta prestación del servicio. Express Services actúa únicamente como intermediario tecnológico, no como empleador, socio o representante de los proveedores.</p>
+
+                    <h6 class="fw-bold mt-3">6. Modificaciones</h6>
+                    <p>Express Services podrá actualizar estos Términos y Condiciones en cualquier momento. Los cambios serán notificados en la plataforma y entrarán en vigor desde su publicación.</p>
+
+                    <h6 class="fw-bold mt-3">7. Aceptación</h6>
+                    <p>Al usar Express Services, el usuario declara haber leído, comprendido y aceptado los presentes Términos y Condiciones.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    </footer>
+    <script>
+    window.GOOGLE_CLIENT_ID = '700486117108-3jdja7n8tsc02hbbhhq1agsc83kskhih.apps.googleusercontent.com';
+    </script>
+    <!-- Botón de scroll hacia arriba -->
+    <button id="scroll-to-top" class="btn btn-primary position-fixed d-flex align-items-center justify-content-center" style="bottom: 20px; right: 20px; border-radius: 50%; width: 55px; height: 55px; z-index: 1000; box-shadow: 0 4px 12px rgba(0,123,255,0.4); transition: all 0.3s ease; opacity: 1; visibility: visible;">
+        <i class="bi bi-arrow-up" style="font-size: 1.4rem; font-weight: bold;"></i>
+    </button>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="frontend/js/main.js" type="module"></script>
+    <script src="frontend/js/app.js" type="module"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
