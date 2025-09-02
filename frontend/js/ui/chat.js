@@ -17,7 +17,7 @@ export async function openChatModal(conversationId) {
                                     <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
                                         <div class="modal-content">
                                             <div class="modal-header">
-                                                <h5 class="modal-title fw-bold" id="chat-modal-title">Chat con Proveedor</h5>
+                                                <h5 class="modal-title fw-bold" id="chat-modal-title">Chat</h5>
                                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                             </div>
                                             <div class="modal-body" id="chat-messages-container" style="display: flex; flex-direction: column-reverse; height: 400px; overflow-y: auto;"></div>
@@ -35,6 +35,18 @@ export async function openChatModal(conversationId) {
         setupChatFormListener();
     // Configure modal events
         setupModalEvents();
+    }
+    
+    // Set the modal title dynamically depending on current view (client/provider)
+    const titleEl = document.getElementById('chat-modal-title');
+    if (titleEl) {
+        const path = (window.location && window.location.pathname) || '';
+        // If we are in the provider dashboard, show "Chat con Cliente", else default to "Chat con Proveedor"
+        if (path.includes('/views/private/provider.html')) {
+            titleEl.textContent = 'Chat con Cliente';
+        } else {
+            titleEl.textContent = 'Chat con Proveedor';
+        }
     }
     
     const chatModal = new bootstrap.Modal(document.getElementById('chatModal'));
