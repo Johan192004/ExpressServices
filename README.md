@@ -73,7 +73,6 @@ backend/
 	routes/
 		categories.js
 		clients.js
-		code.sql                # Reference SQL schema
 		contractsRoutes.js
 		conversationsRoutes.js
 		favorites.js
