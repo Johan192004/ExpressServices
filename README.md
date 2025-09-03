@@ -55,9 +55,8 @@ Design choices that matter
 - Auth: JSON Web Tokens (JWT), Google Sign-In (Google Auth Library)
 - Validation: express-validator
 - Email: nodemailer
-- Frontend: HTML, CSS, vanilla JavaScript (ES modules), Bootstrap 5, Bootstrap Icons
+- Frontend: HTML, CSS, JavaScript, Bootstrap 5
 - Utilities: dotenv, CORS
-- Time handling: normalization to Colombia timezone (UTC-05:00) in key endpoints
 
 
 ## Folder structure
